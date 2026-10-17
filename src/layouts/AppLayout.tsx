@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { navigationGroups } from '../navigation'
 import { useAuth } from '../hooks/useAuth'
 import { ErrorState } from '../components/ErrorState'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -111,7 +112,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         )}
         <main aria-live="polite" className="content-area" key={location.pathname}>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

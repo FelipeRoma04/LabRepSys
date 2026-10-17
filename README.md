@@ -1,6 +1,6 @@
 # ReportSysDev
 
-Andamiaje de la aplicación web de reportes de resultados de laboratorio. La interfaz se publica como sitio estático; Supabase es el único backend previsto. Los módulos funcionales, las tablas de negocio y la autenticación quedan pendientes de sus definiciones.
+Aplicación web de reportes de resultados de laboratorio. La interfaz se publica como sitio estático; Supabase es el único backend. La autenticación, los catálogos y los módulos comerciales están implementados sobre migraciones y servicios Supabase.
 
 ## Requisitos
 
@@ -74,6 +74,14 @@ values (
 ```
 
 Como alternativa a `npx supabase db push`, ejecuta los SQL de `supabase/migrations/` en orden en el SQL Editor y luego el contenido de `supabase/seed.sql`. Las reglas actuales de Storage y sus decisiones pendientes están descritas en [supabase/README.md](./supabase/README.md).
+
+## Clientes y cotizaciones
+
+El módulo comercial permite gestionar clientes, contactos y cotizaciones con datos persistidos en Supabase. Clientes y cotizaciones se auditan; los NIT se mantienen únicos cuando tienen valor. Las razones sociales similares generan una advertencia que puede confirmarse. Las cotizaciones guardan ensayos y normativa como sugerencias pendientes de confirmación; los roles distintos de ADMIN y COMERCIAL solo pueden leer cotizaciones vigentes. Recepción debe consultar cotizaciones con estado `ACTIVE` y vigencia no vencida; `listSelectableQuotes` aplica ese filtro.
+
+## Recepción de muestras
+
+El asistente `/muestras/recepcion` registra muestras y recepción; `/muestras` y `/muestras/buscar` permiten filtrar y consultar el detalle. El código predeterminado es `^AG[0-9]{4}$` (configurable en `app_settings.sample.code_pattern`), se valida en navegador y base de datos, y es único. Las cotizaciones se muestran solo si están vigentes y las sugerencias de ensayos/normativa requieren confirmación explícita. Las desviaciones exigen constancia de consulta al cliente; las ediciones posteriores requieren motivo y se guardan mediante RPC con auditoría. CSV presenta vista previa y errores por fila antes de importar; las muestras importadas quedan pendientes de revisión hasta completar el asistente.
 
 ## Publicación en GitHub Pages
 

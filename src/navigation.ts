@@ -25,7 +25,11 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       { label: 'Muestras', path: '/muestras' },
       { label: 'Recepción', path: '/muestras/recepcion' },
-      { label: 'Datos de campo', path: '/muestras/datos-de-campo' },
+      {
+        label: 'Datos de campo',
+        path: '/muestras/datos-de-campo',
+        roles: ['ADMIN', 'MUESTREO', 'RECEPCION', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
+      },
       { label: 'Buscar muestras', path: '/muestras/buscar' },
     ],
   },
@@ -61,6 +65,7 @@ export const navigationGroups: NavigationGroup[] = [
       { label: 'Métodos', path: '/catalogos/metodos' },
       { label: 'Matrices', path: '/catalogos/matrices' },
       { label: 'Plantillas', path: '/catalogos/plantillas' },
+      { label: 'Festivos', path: '/catalogos/festivos' },
     ],
   },
   { label: 'Indicadores', items: [{ label: 'Indicadores', path: '/indicadores' }] },
@@ -78,6 +83,16 @@ export const navigationGroups: NavigationGroup[] = [
     label: 'Administración',
     items: [
       { label: 'Administración', path: '/administracion', roles: ['ADMIN'] },
+      {
+        label: 'Diagnóstico',
+        path: '/administracion/diagnostico',
+        roles: ['ADMIN', 'ADMIN_TECNICO'],
+      },
+      {
+        label: 'Asistente de migración',
+        path: '/administracion/migracion',
+        roles: ['ADMIN', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
+      },
     ],
   },
 ]

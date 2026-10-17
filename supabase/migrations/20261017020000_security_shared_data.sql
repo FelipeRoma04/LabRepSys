@@ -510,7 +510,6 @@ on storage.objects for update to authenticated
 using (bucket_id = 'signatures' and public.has_role('ADMIN'))
 with check (bucket_id = 'signatures' and public.has_role('ADMIN'));
 
-alter table storage.objects enable row level security;
 revoke select on storage.objects from anon, authenticated;
 
 grant select on public.profiles, public.user_roles to service_role;

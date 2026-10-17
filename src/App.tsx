@@ -9,6 +9,27 @@ import { navigationGroups } from './navigation'
 import { AuthProvider } from './lib/AuthProvider'
 import { isSupabaseConfigured, requiredSupabaseVariables } from './lib/supabase'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { CatalogPage } from './pages/CatalogPage'
+import { DiagnosticsPage } from './pages/DiagnosticsPage'
+import { TemplateEditorPage } from './pages/TemplateEditorPage'
+import { ClientsPage } from './pages/ClientsPage'
+import { QuotesPage } from './pages/QuotesPage'
+import { ReceptionPage } from './pages/ReceptionPage'
+import { SamplesPage } from './pages/SamplesPage'
+import { FieldDataPage } from './pages/FieldDataPage'
+import { MigrationAssistantPage } from './pages/MigrationAssistantPage'
+import type { CatalogTable } from './types/catalogs'
+
+const catalogRoutes: Record<string, CatalogTable> = {
+  '/catalogos/ensayos': 'tests',
+  '/catalogos/laboratorios': 'laboratories',
+  '/catalogos/metodos': 'methods',
+  '/catalogos/matrices': 'matrices',
+  '/catalogos/plantillas': 'report_templates',
+  '/catalogos/festivos': 'holidays',
+}
+
+const diagnosticsRoute = '/administracion/diagnostico'
 
 export default function App() {
   if (!isSupabaseConfigured()) {
@@ -39,7 +60,21 @@ export default function App() {
                     <ProtectedRoute
                       allowedRoles={item.roles}
                     >
-                      <ModulePage title={item.label} />
+                      {item.path === '/clientes'
+                        ? <ClientsPage />
+                        : item.path === '/cotizaciones'
+                          ? <QuotesPage />
+                          : item.path === '/muestras/recepcion'
+                            ? <ReceptionPage />
+                            : item.path === '/muestras' || item.path === '/muestras/buscar'
+                              ? <SamplesPage />
+                              : item.path === '/muestras/datos-de-campo'
+                                ? <FieldDataPage />
+                          : catalogRoutes[item.path]
+                        ? <CatalogPage table={catalogRoutes[item.path]} />
+                        : item.path === diagnosticsRoute
+                          ? <DiagnosticsPage />
+                          : <ModulePage title={item.label} />}
                     </ProtectedRoute>
                   }
                 />
@@ -47,6 +82,17 @@ export default function App() {
             )}
             <Route path="*" element={<NotFoundPage />} />
           </Route>
+          {/* Ruta de editor de plantillas — fuera del nav, protegida */}
+          <Route
+            path="/catalogos/plantillas/:id/editar"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'JEFE_TECNICA_CALIDAD', 'AUDITOR']}>
+                <AppLayout>
+                  <TemplateEditorPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate replace to="/login" />} />
         </Routes>
       </HashRouter>

@@ -120,6 +120,23 @@ Deno.serve(async (request) => {
 
   if (!canRead) return respond(403, { error: 'No tiene permiso para descargar este archivo.' })
 
+  if (bucket === 'source-files') {
+    const { data: attachment, error: attachmentError } = await adminClient
+      .from('sample_attachments')
+      .select('id')
+      .eq('storage_path', path)
+      .eq('withdrawn', false)
+      .maybeSingle()
+
+    if (attachmentError) {
+      console.error('No fue posible verificar el estado del adjunto solicitado.')
+      return respond(503, { error: 'No fue posible verificar el permiso de descarga.' })
+    }
+    if (!attachment) {
+      return respond(404, { error: 'El adjunto no existe o fue retirado.' })
+    }
+  }
+
   const separatorIndex = path.lastIndexOf('/')
   const directory = separatorIndex < 0 ? '' : path.slice(0, separatorIndex)
   const fileName = separatorIndex < 0 ? path : path.slice(separatorIndex + 1)

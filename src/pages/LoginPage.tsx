@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
 import { useAuth } from '../hooks/useAuth'
@@ -14,7 +14,6 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const location = useLocation()
-  const navigate = useNavigate()
   const returnTo = (location.state as LoginLocationState | null)?.from ?? '/'
 
   if (status === 'loading') {
@@ -29,7 +28,6 @@ export function LoginPage() {
     setIsSubmitting(true)
     try {
       await login(email.trim(), password)
-      navigate(returnTo, { replace: true })
     } catch {
       // The provider exposes the Supabase error in loginError for the form.
     } finally {
