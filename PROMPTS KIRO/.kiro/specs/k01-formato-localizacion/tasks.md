@@ -1,0 +1,22 @@
+# Tasks - K01
+
+- [ ] 1. Crear src/lib/format con index.ts y tipos
+  - _Requirements: 1.1_
+- [ ] 2. Numeros
+  - [ ] 2.1 formatNumber sin redondeo
+    - _Requirements: 1.1, 1.2_
+  - [ ] 2.2 parseLocaleNumber con deteccion de ambiguedad
+    - _Requirements: 1.3, 1.4_
+- [ ] 3. Resultados y estados sin dato
+  - [ ] 3.1 formatResult
+    - _Requirements: 2.1, 2.2, 2.3_
+  - [ ] 3.2 formatValueState
+    - _Requirements: 3.1, 3.2_
+- [ ] 4. Fechas
+  - [ ] 4.1 formatDateTime con zona y formato configurables
+    - _Requirements: 4.1_
+  - [ ] 4.2 isSuspiciousDate y fromExcelSerial
+    - _Requirements: 4.2, 4.3_
+- [ ] 5. Pruebas unitarias (Vitest) de todos los casos, incluidos "< 0,040", "<= 5", cero valido y "1.234,5"
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.1, 2.2, 2.3, 3.1, 3.2, 4.1, 4.2, 4.3_
+- [ ] 6. build, lint y test sin errores

@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { navigationGroups } from '../navigation'
+import { useAuth } from '../hooks/useAuth'
+import { ErrorState } from '../components/ErrorState'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -9,6 +11,26 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
+  const { profile, roles, logout, isSigningOut, authError } = useAuth()
+
+  const visibleGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) =>
+          !item.roles ||
+          item.roles.some((role) => roles.some((userRole) => userRole.code === role)),
+      ),
+    }))
+    .filter((group) => group.items.length > 0)
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch {
+      // The provider exposes the logout error without discarding the session.
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -21,7 +43,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <small>Reportes de laboratorio</small>
         </NavLink>
         <nav>
-          {navigationGroups.map((group) => (
+          {visibleGroups.map((group) => (
             <section className="sidebar-group" key={group.label}>
               <h2>{group.label}</h2>
               {group.items.map((item) => (
@@ -63,7 +85,31 @@ export function AppLayout({ children }: AppLayoutProps) {
             Menú
           </button>
           <p className="topbar-title">Laboratorio de Aguas y Alimentos</p>
+          <div className="topbar-account">
+            <span className="topbar-user">
+              <strong>{profile?.fullName || 'Usuario'}</strong>
+              <span>{profile?.email}</span>
+              <span>
+                {roles.length
+                  ? roles.map((role) => role.name).join(', ')
+                  : 'Sin roles asignados'}
+              </span>
+            </span>
+            <button
+              className="logout-button"
+              disabled={isSigningOut}
+              onClick={() => void handleLogout()}
+              type="button"
+            >
+              {isSigningOut ? 'Cerrando…' : 'Cerrar sesión'}
+            </button>
+          </div>
         </header>
+        {authError && (
+          <div className="layout-error">
+            <ErrorState message={authError} />
+          </div>
+        )}
         <main aria-live="polite" className="content-area" key={location.pathname}>
           {children}
         </main>

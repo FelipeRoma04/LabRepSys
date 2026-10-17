@@ -1,0 +1,44 @@
+version: 2
+
+updates:
+  # Dependencias npm
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Bogota
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - javascript
+    ignore:
+      # Ignorar major versions de TypeScript (cambios de compilador son manuales)
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+    groups:
+      # Agrupar actualizaciones de testing en un solo PR
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "vitest"
+          - "jsdom"
+      # Agrupar tipos de TypeScript
+      typescript-types:
+        patterns:
+          - "@types/*"
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Bogota
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions

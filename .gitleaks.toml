@@ -1,0 +1,52 @@
+# .gitleaks.toml
+# Configuración de Gitleaks para LabRepSys
+# Gitleaks detecta secretos en el historial de git.
+# Referencia: https://github.com/gitleaks/gitleaks
+
+title = "LabRepSys Gitleaks Config"
+
+# ── Reglas adicionales específicas del proyecto ───────────────────────────────
+
+[[rules]]
+  id = "supabase-service-role"
+  description = "Posible service_role key de Supabase"
+  regex = '''(?i)(service[_-]?role[_-]?key|service_role)\s*[=:]\s*['\"]?([a-zA-Z0-9._-]{20,})['\"]?'''
+  tags = ["supabase", "service-role", "critical"]
+
+[[rules]]
+  id = "supabase-anon-in-env-files"
+  description = "Clave anon de Supabase en archivo de entorno comprometido"
+  regex = '''VITE_SUPABASE_ANON_KEY\s*=\s*[a-zA-Z0-9._-]{20,}'''
+  tags = ["supabase", "anon-key"]
+  # Permitir en .env.example (está vacía)
+  [rules.allowlist]
+    paths = ['''.env\.example''']
+
+[[rules]]
+  id = "supabase-url-with-credentials"
+  description = "URL de Supabase con credenciales embebidas"
+  regex = '''postgresql://[^:]+:[^@]+@[^/]+\.supabase\.co'''
+  tags = ["supabase", "database-url", "critical"]
+
+[[rules]]
+  id = "supabase-access-token"
+  description = "Token de acceso personal de Supabase CLI"
+  regex = '''(SUPABASE_ACCESS_TOKEN|sbp_[a-zA-Z0-9]{40})'''
+  tags = ["supabase", "access-token", "critical"]
+
+# ── Allowlist global ──────────────────────────────────────────────────────────
+[allowlist]
+  description = "Archivos y patrones que se ignoran globalmente"
+  paths = [
+    '''(^|/).env\.example$''',
+    '''node_modules/''',
+    '''dist/''',
+    '''\.github/workflows/.*\.yml$''',  # Las refs a secrets.* no son secretos reales
+  ]
+  # Ignorar strings de placeholder en documentación y ejemplos
+  regexes = [
+    '''placeholder_anon_key''',
+    '''placeholder\.supabase\.co''',
+    '''<[A-Z_]+>''',       # Placeholders tipo <PROJECT_REF>
+    '''<UUID_DEL_USUARIO>''',
+  ]

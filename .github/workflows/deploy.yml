@@ -17,31 +17,53 @@ concurrency:
 
 jobs:
   build:
+    name: Compilar y verificar
     runs-on: ubuntu-latest
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
+
       - name: Configurar Node.js LTS
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+
       - name: Instalar dependencias
         run: npm ci
-      - name: Compilar
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Pruebas unitarias
+        run: npm test
+
+      - name: Compilar producción
         run: npm run build
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+
+      # Verificar que service_role nunca llega al bundle
+      - name: Verificar ausencia de service_role en el bundle
+        run: |
+          if grep -r "service_role" dist/ 2>/dev/null; then
+            echo "ERROR: La cadena 'service_role' aparece en el bundle de producción."
+            exit 1
+          fi
+          echo "OK: service_role no encontrado en dist/"
+
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
+
       - name: Cargar artefacto de Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
+    name: Publicar en GitHub Pages
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

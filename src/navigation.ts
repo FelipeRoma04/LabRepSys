@@ -1,6 +1,9 @@
+import type { RoleCode } from './types/auth'
+
 export interface NavigationItem {
   label: string
   path: string
+  roles?: readonly RoleCode[]
 }
 
 export interface NavigationGroup {
@@ -61,9 +64,20 @@ export const navigationGroups: NavigationGroup[] = [
     ],
   },
   { label: 'Indicadores', items: [{ label: 'Indicadores', path: '/indicadores' }] },
-  { label: 'Auditoría', items: [{ label: 'Auditoría', path: '/auditoria' }] },
+  {
+    label: 'Auditoría',
+    items: [
+      {
+        label: 'Auditoría',
+        path: '/auditoria',
+        roles: ['ADMIN', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
+      },
+    ],
+  },
   {
     label: 'Administración',
-    items: [{ label: 'Administración', path: '/administracion' }],
+    items: [
+      { label: 'Administración', path: '/administracion', roles: ['ADMIN'] },
+    ],
   },
 ]

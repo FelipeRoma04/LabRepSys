@@ -1,0 +1,4 @@
+Copia todos los archivos .prompt.md a la carpeta .github/prompts/ de tu proyecto.
+En el chat de Copilot (modo Agent) escribe / y el nombre, por ejemplo: /p02-catalogos
+Orden: p01, p02, ... p14. Uno por vez; build verde y commit entre cada uno.
+p99-retomar-contexto se usa solo si abres un chat nuevo y Copilot pierde el hilo.

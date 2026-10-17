@@ -33,3 +33,15 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Respaldos locales (NUNCA subir al repo — contienen datos confidenciales)
+backups/
+backup-storage/
+
+# Playwright (E2E — A03)
+playwright-report/
+test-results/
+e2e/.auth/
+
+# Scripts de ops — archivos temporales
+scripts/ops/*.log

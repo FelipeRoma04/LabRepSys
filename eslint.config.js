@@ -24,4 +24,12 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['supabase/functions/**/*.ts'],
+    languageOptions: {
+      globals: {
+        Deno: 'readonly',
+      },
+    },
+  },
 )

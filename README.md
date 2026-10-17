@@ -41,22 +41,39 @@ La clave anon está diseñada para uso en el cliente. No pongas claves `service_
 La configuración de Supabase está en `supabase/`. No se requiere Docker para trabajar contra el proyecto alojado en Supabase; no se incluye un flujo local con contenedores.
 
 1. Crea o selecciona un proyecto en Supabase y copia su URL y clave anon a `.env.local`.
-2. Autentica la CLI si aún no lo hiciste y vincula el proyecto:
+2. Desactiva el registro público en **Authentication > Providers > Email > Allow new users to sign up**. Crea usuarios mediante invitación desde **Authentication > Users**.
+3. Autentica la CLI si aún no lo hiciste, vincula el proyecto y aplica las migraciones:
 
    ```bash
    npx supabase login
    npx supabase link --project-ref <project-ref>
-   ```
-
-3. Cuando existan migraciones, súbelas al proyecto vinculado:
-
-   ```bash
    npx supabase db push
    ```
 
-   `supabase/migrations/` no contiene todavía tablas de negocio.
+4. Publica la función de descarga firmada:
 
-Como alternativa, abre el **SQL Editor** del dashboard de Supabase y pega allí el contenido de cada migración en orden por nombre de archivo. Revisa el SQL antes de ejecutarlo. El archivo `supabase/seed.sql` se mantiene vacío por ahora.
+   ```bash
+   npx supabase functions deploy create-storage-signed-url
+   ```
+
+5. En las variables/secrets del proyecto Edge Function verifica que existan `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`. Son configuración exclusiva del entorno Supabase; nunca se copian a variables `VITE_*`.
+
+Para crear el primer ADMIN, invita primero al usuario, toma su UUID desde **Authentication > Users** y ejecuta en el SQL Editor:
+
+```sql
+update public.profiles
+set active = true
+where id = '<UUID_DEL_USUARIO>'::uuid;
+
+insert into public.user_roles (user_id, role_code, assigned_by)
+values (
+  '<UUID_DEL_USUARIO>'::uuid,
+  'ADMIN',
+  '<UUID_DEL_USUARIO>'::uuid
+);
+```
+
+Como alternativa a `npx supabase db push`, ejecuta los SQL de `supabase/migrations/` en orden en el SQL Editor y luego el contenido de `supabase/seed.sql`. Las reglas actuales de Storage y sus decisiones pendientes están descritas en [supabase/README.md](./supabase/README.md).
 
 ## Publicación en GitHub Pages
 
