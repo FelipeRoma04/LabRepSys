@@ -13,6 +13,7 @@ supabase/tests/database/
   30_commercial        NIT único, contacto del cliente correcto, consecutivo y auditoría de cotizaciones
   40_rsa_reports       (pendiente — tras p11) segregación, emit_report deniega y audita
   50_samples_reception Código AG, escritura solo por RPC, consulta de desviaciones y laboratorio requerido
+  55_field_data_attachments Valor cero frente a ausencia, coordenadas, motivo posterior a recepción, RLS y RPC
 ```
 
 ## Cómo ejecutar

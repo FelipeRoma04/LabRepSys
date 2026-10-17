@@ -18,7 +18,7 @@ La configuración inicial se creó con `npx supabase init`. Este proyecto usa Su
    npx supabase db push
    ```
 
-Alternativamente, copia el SQL de los archivos de `migrations/` en orden al SQL Editor de Supabase y ejecútalo. Después ejecuta `seed.sql`. La migración `20261017030000_catalogs.sql` crea los catálogos compartidos, `20261017140000_clients_quotes.sql` crea clientes, contactos y cotizaciones, y `20261017150000_samples_reception.sql` crea muestras y recepción. `seed.catalogs.development.sql` contiene únicamente nombres de laboratorios para pruebas locales y **no** se ejecuta automáticamente ni debe cargarse en producción.
+Alternativamente, copia el SQL de los archivos de `migrations/` en orden al SQL Editor de Supabase y ejecútalo. Después ejecuta `seed.sql`. La migración `20261017030000_catalogs.sql` crea los catálogos compartidos, `20261017140000_clients_quotes.sql` crea clientes, contactos y cotizaciones, `20261017150000_samples_reception.sql` crea muestras y recepción, y las migraciones p05 crean datos de campo y adjuntos. `seed.catalogs.development.sql` contiene únicamente nombres de laboratorios para pruebas locales y **no** se ejecuta automáticamente ni debe cargarse en producción.
 
 ## Usuarios, Auth y primer ADMIN
 
@@ -45,9 +45,9 @@ Este bootstrap se ejecuta desde el SQL Editor con privilegios de proyecto; no ha
 
 La migración crea los buckets privados `source-files`, `report-drafts`, `issued-reports` y `signatures`. No se concede lectura directa de `storage.objects`: las descargas de la aplicación deben solicitar una URL firmada mediante la Edge Function `create-storage-signed-url`, con vencimiento fijo de 60 segundos. La clave privilegiada se configura únicamente como secreto de la Edge Function y nunca en el frontend.
 
-La política inicial es deliberadamente restrictiva mientras no existan las tablas de muestras y reportes que permitan comprobar propiedad y estado:
+Las políticas de `source-files` se completan en la migración p05 después de crear las tablas de muestras y adjuntos:
 
-- `source-files`: las escrituras de `ADMIN` y `RECEPCION` solo aceptan la forma `samples/{sample_uuid}/{file_uuid}-{nombre}`. La lectura firmada está permitida a los roles activos `ADMIN`, `RECEPCION`, `ANALISTA`, `JEFE_TECNICA_CALIDAD` y `AUDITOR`. La escritura de otros roles queda denegada hasta poder comprobar en base de datos la entidad, la asignación y su estado.
+- `source-files`: `ADMIN` y `RECEPCION` solo pueden subir a `samples/{sample_uuid}/{file_uuid}-{nombre}` hasta el límite de `sample.field.max_attachment_size_bytes`. El registro de metadatos verifica en RPC que la muestra y el objeto existan, que el tipo y tamaño coincidan y que la huella SHA-256 tenga el formato esperado. Descargan mediante URL firmada los usuarios activos `ADMIN`, `RECEPCION`, `ANALISTA`, `JEFE_TECNICA_CALIDAD` y `AUDITOR`; los adjuntos retirados no generan enlaces.
 - `report-drafts`, `issued-reports` y `signatures`: las escrituras quedan limitadas a `ADMIN`; para emitir enlaces firmados, la política temporal permite solo a `ADMIN`. La estructura de rutas y acceso por estado/propiedad se definirá junto con los módulos de reportes.
 - Usuarios no activos o sin rol funcional no pueden generar descargas. Los objetos de todos los buckets permanecen privados.
 
@@ -79,4 +79,12 @@ La migración crea `samples`, `sample_receptions`, `sample_tests` y `sample_even
 
 `save_sample` exige confirmación explícita de sugerencias de cotización, verificación de capacidad y métodos, consulta al cliente cuando exista desviación, laboratorio asignado para cada ensayo subcontratado y motivo obligatorio para toda edición posterior. La RPC actualiza la muestra, recepción y ensayos en una transacción, registra valores anteriores/nuevos en `audit_logs` y agrega eventos al historial. Una muestra importada desde CSV queda `PENDING_REVIEW` hasta que se complete y guarde la revisión en el asistente.
 
-La importación CSV requiere código, cliente (NIT o razón social) y matriz (código o nombre); acepta además plan, punto y fecha. La vista previa señala código inválido, cliente o matriz no encontrados y fechas futuras o con año distinto, sin corregir fechas automáticamente. Las filas inválidas se excluyen y las advertencias permanecen para revisión. La búsqueda usa filtros combinables de texto, estado y fecha de recepción. Los bloques de datos de campo y adjuntos indican que estarán disponibles en el módulo siguiente.
+La importación CSV requiere código, cliente (NIT o razón social) y matriz (código o nombre); acepta además plan, punto y fecha. La vista previa señala código inválido, cliente o matriz no encontrados y fechas futuras o con año distinto, sin corregir fechas automáticamente. Las filas inválidas se excluyen y las advertencias permanecen para revisión. La búsqueda usa filtros combinables de texto, estado y fecha de recepción.
+
+## Datos de campo y adjuntos
+
+La migración `20261017060000_field_data_attachments.sql` crea los catálogos y tablas de p05; `20261017160000_field_data_attachments_security.sql`, posterior a muestras, agrega relaciones, restricciones, ajustes y RPC de escritura. Todas las tablas tienen RLS. Las mediciones conservan `VALUE` con cero numérico como valor real; los estados `NOT_APPLICABLE`, `NOT_REPORTED`, `NOT_SPECIFIED` y `PENDING` quedan sin valor numérico.
+
+`save_sample_field_data` permite a MUESTREO guardar las mediciones antes de completar la recepción. Después exige motivo y registra la edición en `audit_logs`; las escrituras directas están revocadas. Las coordenadas originales se conservan; solo se guarda su normalización decimal si ambos formatos son inequívocos y están en rango.
+
+RECEPCION y ADMIN gestionan los metadatos de adjuntos y pueden retirarlos con motivo, sin borrar el objeto. Los buckets siguen privados; la lectura se hace mediante `create-storage-signed-url`, que exige un metadato vigente y emite enlaces de 60 segundos. `sample.field.max_attachment_size_bytes` controla el tamaño límite (10 MiB por defecto) y `sample.field.photo_evidence_enabled` habilita o deshabilita evidencia fotográfica (deshabilitada inicialmente mientras se define RF-CAM-005). Las pruebas SQL p05 están en `supabase/tests/database/55_field_data_attachments.sql`; ejecutarlas solo en un proyecto de pruebas.

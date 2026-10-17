@@ -119,10 +119,17 @@ export async function uploadSampleAttachment(
   const fileName = sanitizeFileName(file.name)
   const storagePath = `samples/${sampleId}/${crypto.randomUUID()}-${fileName}`
   const sha256 = await sha256File(file)
+  const contentType = file.type || ({
+    pdf: 'application/pdf',
+    jpg: 'image/jpeg',
+    png: 'image/png',
+    csv: 'text/csv',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  } as const)[fileType]
   const { error: uploadError } = await db()
     .storage
     .from('source-files')
-    .upload(storagePath, file, { contentType: file.type, upsert: false })
+    .upload(storagePath, file, { contentType, upsert: false })
   if (uploadError) throw uploadError
 
   const { error: registerError } = await db().rpc('register_sample_attachment', {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import axe from 'axe-core'
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -22,6 +23,18 @@ function ModalHarness() {
 }
 
 describe('Modal', () => {
+  it('has no axe violations within the dialog', async () => {
+    const user = userEvent.setup()
+    render(<ModalHarness />)
+    await user.click(screen.getByRole('button', { name: 'Abrir modal' }))
+
+    const results = await axe.run(screen.getByRole('dialog'), {
+      rules: { 'color-contrast': { enabled: false } },
+    })
+
+    expect(results.violations).toEqual([])
+  })
+
   it('moves focus into the dialog, traps Tab, closes with Escape, and restores focus', async () => {
     const user = userEvent.setup()
     render(<ModalHarness />)

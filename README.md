@@ -83,6 +83,8 @@ El módulo comercial permite gestionar clientes, contactos y cotizaciones con da
 
 El asistente `/muestras/recepcion` registra muestras y recepción; `/muestras` y `/muestras/buscar` permiten filtrar y consultar el detalle. El código predeterminado es `^AG[0-9]{4}$` (configurable en `app_settings.sample.code_pattern`), se valida en navegador y base de datos, y es único. Las cotizaciones se muestran solo si están vigentes y las sugerencias de ensayos/normativa requieren confirmación explícita. Las desviaciones exigen constancia de consulta al cliente; las ediciones posteriores requieren motivo y se guardan mediante RPC con auditoría. CSV presenta vista previa y errores por fila antes de importar; las muestras importadas quedan pendientes de revisión hasta completar el asistente.
 
+`/muestras/datos-de-campo` registra coordenadas originales, normalización decimal solo cuando el formato es inequívoco, mediciones con estados diferenciados y adjuntos privados. MUESTREO registra datos de campo; después de la recepción la RPC exige motivo y audita el cambio. RECEPCION y ADMIN gestionan adjuntos; las descargas requieren una URL firmada de 60 segundos. El tamaño máximo y la habilitación de fotos se configuran en `app_settings`.
+
 ## Publicación en GitHub Pages
 
 El workflow `.github/workflows/deploy.yml` compila y publica el sitio en GitHub Pages al actualizar la rama `main` o al iniciarse manualmente.

@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   getSampleFileType,
   normalizeCoordinate,
   normalizeCoordinatePair,
   sanitizeFileName,
+  sha256File,
   validateSampleAttachment,
 } from './fieldData'
 
@@ -47,5 +48,16 @@ describe('validación de datos de campo', () => {
       'FOTO',
     )).toContain('deshabilitada')
     expect(sanitizeFileName('solicitud con ñ.pdf')).toBe('solicitud_con_n.pdf')
+  })
+
+  it('calcula y devuelve la huella SHA-256 en hexadecimal', async () => {
+    const digest = vi.fn().mockResolvedValue(new Uint8Array([0x0a, 0xff]).buffer)
+    vi.stubGlobal('crypto', { subtle: { digest } })
+    try {
+      expect(await sha256File(new File(['contenido'], 'archivo.pdf'))).toBe('0aff')
+      expect(digest).toHaveBeenCalledWith('SHA-256', expect.any(ArrayBuffer))
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

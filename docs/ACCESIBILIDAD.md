@@ -1,17 +1,19 @@
 # Accesibilidad y responsive
 
-Estado: revisión parcial de código. No se certifica conformidad WCAG 2.1 AA.
+Estado: revisión parcial de código y prueba axe del diálogo compartido. No se certifica conformidad WCAG 2.1 AA.
 
 ## Hallazgos revisados y correcciones
 
 - El foco visible global usa `:focus-visible` en `src/styles/index.css`.
+- En anchos de hasta 800 px, botones y campos tienen altura mínima de 44 px; los controles de casilla y opción tienen un área visual de 20 px en `src/styles/app.css`.
 - Los diálogos compartidos en `src/components/Modal.tsx` ahora reciben el foco al abrirse, mantienen la tabulación dentro del diálogo, cierran con Escape y devuelven el foco al elemento que los abrió. `src/components/Modal.test.tsx` cubre ese comportamiento.
+- `axe-core` está registrado como dependencia de desarrollo. La prueba del diálogo compartido comprueba violaciones axe; omite contraste de color porque jsdom no representa fielmente el renderizado visual.
 - La tabla compartida usa encabezados de columna (`scope="col"`) y una leyenda accesible en `src/components/DataTable.tsx`.
 - El formulario de datos de campo tiene campos de al menos 44 px y pasa a una columna en anchos móviles en `src/styles/app.css`.
 
 ## Pendiente de auditoría automatizada y manual
 
-`axe-core` y `jest-axe` no están instalados en el proyecto. Por ello no se han medido ni se puede afirmar que haya cero violaciones críticas o serias. Tampoco se ha hecho una inspección visual en dispositivos de 390 px, 768 px y escritorio ni una prueba completa con lector de pantalla. Las rutas requieren una sesión de Supabase con los roles indicados para revisar el contenido protegido.
+La prueba axe cubre el diálogo compartido, no todas las rutas. Por ello no se puede afirmar que haya cero violaciones críticas o serias en la aplicación completa. Tampoco se ha hecho una inspección visual en dispositivos de 390 px, 768 px y escritorio ni una prueba completa con lector de pantalla. Las rutas requieren una sesión de Supabase con los roles indicados para revisar el contenido protegido.
 
 | Ruta | Estado de revisión | Pendiente |
 | --- | --- | --- |
@@ -46,4 +48,4 @@ Estado: revisión parcial de código. No se certifica conformidad WCAG 2.1 AA.
 
 ## Cómo completar la auditoría
 
-Instalar y configurar `axe-core` con el corredor de pruebas del proyecto, recorrer las rutas con datos de prueba y roles autorizados, y guardar los resultados por ruta. Corregir primero las violaciones críticas y serias. Repetir las pruebas a 390 px, 768 px y escritorio, incluyendo teclado y lector de pantalla. Actualizar esta tabla con hallazgos y resultados medidos.
+Extender las pruebas axe a las rutas con datos de prueba y roles autorizados, y guardar los resultados por ruta. Corregir primero las violaciones críticas y serias. Repetir las pruebas a 390 px, 768 px y escritorio, incluyendo teclado y lector de pantalla. Actualizar esta tabla con hallazgos y resultados medidos.

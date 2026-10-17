@@ -83,7 +83,7 @@ const fileTypes: Record<string, { fileType: SampleFileType; mimeTypes: string[] 
   jpg: { fileType: 'jpg', mimeTypes: ['image/jpeg'] },
   jpeg: { fileType: 'jpg', mimeTypes: ['image/jpeg'] },
   png: { fileType: 'png', mimeTypes: ['image/png'] },
-  csv: { fileType: 'csv', mimeTypes: ['text/csv', 'application/vnd.ms-excel', ''] },
+  csv: { fileType: 'csv', mimeTypes: ['text/csv', 'text/plain', 'application/vnd.ms-excel', ''] },
   xlsx: {
     fileType: 'xlsx',
     mimeTypes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],

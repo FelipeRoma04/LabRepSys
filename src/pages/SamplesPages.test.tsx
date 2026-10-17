@@ -293,7 +293,7 @@ describe('recepción y búsqueda de muestras', () => {
     expect(mocks.saveSample).not.toHaveBeenCalled()
   })
 
-  it('permite buscar y ver datos de muestra y módulos aún no disponibles', async () => {
+  it('permite buscar la muestra y abrir sus datos de campo y adjuntos', async () => {
     const user = userEvent.setup()
     mocks.listSamples.mockResolvedValue([sample])
     render(<MemoryRouter><SamplesPage /></MemoryRouter>)
@@ -302,7 +302,9 @@ describe('recepción y búsqueda de muestras', () => {
     expect(screen.getByText('AG0346')).toBeInTheDocument()
     await user.clear(screen.getByLabelText(/Buscar código/))
     await user.click(screen.getByRole('button', { name: 'Detalle' }))
-    expect(screen.getAllByText('Disponible en el siguiente módulo')).toHaveLength(2)
-    expect(screen.getAllByText('Disponible en el siguiente módulo')).toHaveLength(2)
+    await user.click(screen.getByRole('button', { name: 'Abrir datos de campo' }))
+    expect(mocks.navigate).toHaveBeenCalledWith('/muestras/datos-de-campo?sample_id=sample-1')
+    await user.click(screen.getByRole('button', { name: 'Ver adjuntos' }))
+    expect(mocks.navigate).toHaveBeenCalledWith('/muestras/datos-de-campo?sample_id=sample-1')
   })
 })

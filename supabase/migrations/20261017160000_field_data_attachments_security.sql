@@ -42,6 +42,42 @@ alter table public.sample_attachments
 create index sample_attachments_sample_id_created_at_idx
   on public.sample_attachments (sample_id, created_at desc);
 
+create trigger field_parameters_set_audit_columns
+  before insert or update on public.field_parameters
+  for each row execute function public.set_catalog_audit_columns();
+create trigger sample_field_data_set_audit_columns
+  before insert or update on public.sample_field_data
+  for each row execute function public.set_catalog_audit_columns();
+create trigger sample_field_measurements_set_audit_columns
+  before insert or update on public.sample_field_measurements
+  for each row execute function public.set_catalog_audit_columns();
+create trigger sample_attachments_set_audit_columns
+  before insert or update on public.sample_attachments
+  for each row execute function public.set_catalog_audit_columns();
+
+drop policy if exists source_files_upload_authorized on storage.objects;
+create policy source_files_upload_authorized
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'source-files'
+    and name ~ '^samples/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}-[A-Za-z0-9_. -]+$'
+    and public.has_any_role(array['ADMIN', 'RECEPCION'])
+    and exists (
+      select 1
+        from public.samples as sample
+       where sample.id::text = split_part(storage.objects.name, '/', 2)
+    )
+    and exists (
+      select 1
+        from public.app_settings as setting
+       where setting.key = 'sample.field.max_attachment_size_bytes'
+         and (setting.value #>> '{}') ~ '^[0-9]+$'
+         and coalesce(nullif(storage.objects.metadata ->> 'size', '')::bigint, 0)
+             <= (setting.value #>> '{}')::bigint
+    )
+  );
+drop policy if exists source_files_admin_update on storage.objects;
+
 create or replace function public.save_sample_field_data(
   target_sample_id uuid,
   field_data jsonb,
@@ -240,17 +276,24 @@ as $$
 declare
   attachment_id uuid;
   max_size bigint;
+  stored_object storage.objects%rowtype;
+  expected_mime_types text[];
 begin
   if auth.uid() is null or not public.has_any_role(array['RECEPCION', 'ADMIN']) then
     raise exception using errcode = '42501', message = 'Se requiere el rol RECEPCION o ADMIN activo.';
   end if;
-  if target_attachment_type not in ('SOLICITUD', 'CADENA_CUSTODIA', 'FORMATO_CAMPO', 'FOTO', 'OTRO')
+  if target_sample_id is null
+    or target_attachment_type is null
+    or target_attachment_type not in ('SOLICITUD', 'CADENA_CUSTODIA', 'FORMATO_CAMPO', 'FOTO', 'OTRO')
+    or target_file_type is null
     or target_file_type not in ('pdf', 'jpg', 'jpeg', 'png', 'csv', 'xlsx')
     or target_file_size is null
     or target_file_size <= 0
+    or target_sha256 is null
     or target_sha256 !~ '^[0-9a-f]{64}$'
     or target_file_name is null
     or btrim(target_file_name) = ''
+    or target_storage_path is null
     or target_storage_path !~ (
       '^samples/' || target_sample_id::text || '/[0-9a-fA-F-]{36}-[A-Za-z0-9_. -]+$'
     ) then
@@ -278,16 +321,30 @@ begin
     end if;
   end if;
 
+  expected_mime_types := case target_file_type
+    when 'pdf' then array['application/pdf']
+    when 'jpg' then array['image/jpeg']
+    when 'jpeg' then array['image/jpeg']
+    when 'png' then array['image/png']
+    when 'csv' then array['text/csv', 'text/plain', 'application/vnd.ms-excel']
+    when 'xlsx' then array['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+    else array[]::text[]
+  end;
+
   if not exists (select 1 from public.samples where id = target_sample_id) then
     raise exception using errcode = 'P0002', message = 'No se encontró la muestra.';
   end if;
-  if not exists (
-    select 1
-      from storage.objects as object
-     where object.bucket_id = 'source-files'
-       and object.name = target_storage_path
-  ) then
+  select object.*
+    into stored_object
+    from storage.objects as object
+   where object.bucket_id = 'source-files'
+     and object.name = target_storage_path;
+  if not found then
     raise exception using errcode = 'P0002', message = 'No se encontró el archivo cargado en Storage.';
+  end if;
+  if coalesce(nullif(stored_object.metadata ->> 'size', '')::bigint, -1) <> target_file_size
+    or not coalesce(stored_object.metadata ->> 'mimetype' = any(expected_mime_types), false) then
+    raise exception using errcode = '22023', message = 'El tamaño o tipo MIME del archivo no coincide con sus metadatos.';
   end if;
 
   insert into public.sample_attachments (
@@ -369,7 +426,7 @@ begin
          withdrawn_reason = btrim(withdrawal_reason),
          updated_by = auth.uid()
    where id = target_attachment_id
-   returning to_jsonb(sample_attachments.*) into updated_data;
+   returning to_jsonb(sample_attachments) into updated_data;
 
   perform public.log_audit(
     'SAMPLE_ATTACHMENT_WITHDRAWN',

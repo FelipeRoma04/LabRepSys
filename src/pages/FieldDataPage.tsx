@@ -61,7 +61,8 @@ const emptyFieldData = (): Omit<SampleFieldData, 'sample_id' | 'measurements'> =
 export function FieldDataPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { profile, roles } = useAuth()
-  const initialSampleId = useRef(searchParams.get('sample_id') ?? '')
+  const [selectedSampleId, setSelectedSampleId] = useState(() => searchParams.get('sample_id') ?? '')
+  const initialSampleId = useRef(selectedSampleId)
   const canEditField = roles.some((role) => role.code === 'MUESTREO')
   const canManageAttachments = roles.some((role) => ['ADMIN', 'RECEPCION'].includes(role.code))
   const canConfigurePhotos = roles.some((role) => role.code === 'ADMIN')
@@ -74,7 +75,6 @@ export function FieldDataPage() {
     maxSizeBytes: number
     photoEvidenceEnabled: boolean
   } | null>(null)
-  const [selectedSampleId, setSelectedSampleId] = useState(initialSampleId.current)
   const [fieldData, setFieldData] = useState(emptyFieldData)
   const [measurements, setMeasurements] = useState<Record<string, FieldMeasurementDraft>>({})
   const [attachmentType, setAttachmentType] = useState<AttachmentType>('SOLICITUD')
