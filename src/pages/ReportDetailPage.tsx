@@ -80,7 +80,7 @@ export function ReportDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [id, profile?.id])
+  }, [id, profile])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)

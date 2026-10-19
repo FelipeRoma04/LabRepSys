@@ -103,7 +103,7 @@ export const navigationGroups: NavigationGroup[] = [
   {
     label: 'Administración',
     items: [
-      { label: 'Administración', path: '/administracion', roles: ['ADMIN'] },
+      { label: 'Administración', path: '/administracion', roles: ['ADMIN', 'JEFE_TECNICA_CALIDAD'] },
       {
         label: 'Diagnóstico',
         path: '/administracion/diagnostico',

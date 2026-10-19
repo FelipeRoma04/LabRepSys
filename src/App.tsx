@@ -27,6 +27,10 @@ import { ReportListPage } from './pages/ReportListPage'
 import { ReportBuilderPage } from './pages/ReportBuilderPage'
 import { ReportDetailPage } from './pages/ReportDetailPage'
 import { ReportPrintPage } from './pages/ReportPrintPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { AdministrationPage } from './pages/AdministrationPage'
+import { AuditPage } from './pages/AuditPage'
+import { MigrationAssistantPage } from './pages/MigrationAssistantPage'
 import type { ReportStatus } from './types/reports'
 import type { CatalogTable } from './types/catalogs'
 
@@ -60,6 +64,11 @@ const reportListRoutes: Record<string, { status: ReportStatus[]; description: st
 }
 
 function navigationPage(path: string, title: string) {
+  if (path === '/') return <DashboardPage />
+  if (path === '/indicadores') return <DashboardPage />
+  if (path === '/administracion') return <AdministrationPage />
+  if (path === '/auditoria') return <AuditPage />
+  if (path === '/administracion/migracion') return <MigrationAssistantPage />
   if (path === '/clientes') return <ClientsPage />
   if (path === '/cotizaciones') return <QuotesPage />
   if (path === '/muestras/recepcion') return <ReceptionPage />

@@ -4,6 +4,8 @@ import { navigationGroups } from '../navigation'
 import { useAuth } from '../hooks/useAuth'
 import { ErrorState } from '../components/ErrorState'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { HelpDrawer } from '../features/help/HelpDrawer'
+import { NotificationCenter } from '../components/NotificationCenter'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -11,6 +13,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
   const location = useLocation()
   const { profile, roles, logout, isSigningOut, authError } = useAuth()
 
@@ -87,6 +90,15 @@ export function AppLayout({ children }: AppLayoutProps) {
           </button>
           <p className="topbar-title">Laboratorio de Aguas y Alimentos</p>
           <div className="topbar-account">
+            <NotificationCenter />
+            <button
+              aria-haspopup="dialog"
+              className="help-button"
+              onClick={() => setIsHelpOpen(true)}
+              type="button"
+            >
+              Ayuda
+            </button>
             <span className="topbar-user">
               <strong>{profile?.fullName || 'Usuario'}</strong>
               <span>{profile?.email}</span>
@@ -117,6 +129,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </ErrorBoundary>
         </main>
       </div>
+      <HelpDrawer open={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   )
 }

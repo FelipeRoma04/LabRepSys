@@ -31,7 +31,7 @@ update public.reconciliation_issues
  where sample_id = '00000000-0000-0000-0000-000000000000';
 
 update public.reconciliation_issues
-   set fingerprint = encode(digest(concat_ws(E'\x1f',
+   set fingerprint = encode(extensions.digest(concat_ws(E'\x1f',
      'DEMO', demo_sample_code, issue_type, coalesce(entity_type, ''),
      coalesce(field_name, ''), coalesce(value_a, ''), coalesce(value_b, '')
    ), 'sha256'), 'hex')

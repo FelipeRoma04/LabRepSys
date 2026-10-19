@@ -3,7 +3,7 @@
 -- Req 2.1: vistas de calidad de datos por categoría
 
 -- ─── Tabla de mapeos de códigos heredados ────────────────────────────────────
-create table public.legacy_code_mappings (
+create table if not exists public.legacy_code_mappings (
   id               uuid    primary key default gen_random_uuid(),
   legacy_code      text    not null,
   legacy_source    text    not null check (legacy_source in ('AGQ', 'CHEM', 'SGI')),
@@ -20,6 +20,7 @@ create table public.legacy_code_mappings (
   unique (legacy_code, legacy_source)
 );
 
+drop trigger if exists legacy_code_mappings_set_updated_at on public.legacy_code_mappings;
 create trigger legacy_code_mappings_set_updated_at
 before update on public.legacy_code_mappings
 for each row execute function public.set_updated_at();
@@ -29,14 +30,17 @@ revoke all on public.legacy_code_mappings from anon, authenticated;
 grant select, insert, update on public.legacy_code_mappings to authenticated;
 
 -- ADMIN y JEFE_TECNICA_CALIDAD pueden confirmar mapeos; AUDITOR solo lee
+drop policy if exists "legacy_mappings: read authorized" on public.legacy_code_mappings;
 create policy "legacy_mappings: read authorized"
   on public.legacy_code_mappings for select to authenticated
   using (public.has_any_role(array['ADMIN', 'JEFE_TECNICA_CALIDAD', 'AUDITOR']));
 
+drop policy if exists "legacy_mappings: write admin_jtc" on public.legacy_code_mappings;
 create policy "legacy_mappings: write admin_jtc"
   on public.legacy_code_mappings for insert to authenticated
   with check (public.has_any_role(array['ADMIN', 'JEFE_TECNICA_CALIDAD']));
 
+drop policy if exists "legacy_mappings: update admin_jtc" on public.legacy_code_mappings;
 create policy "legacy_mappings: update admin_jtc"
   on public.legacy_code_mappings for update to authenticated
   using (public.has_any_role(array['ADMIN', 'JEFE_TECNICA_CALIDAD']))
@@ -54,7 +58,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = pg_catalog, public, auth
-as $
+as $$
 declare
   v_mapping public.legacy_code_mappings%rowtype;
 begin
@@ -136,7 +140,7 @@ begin
 
   return jsonb_build_object('ok', true);
 end;
-$;
+$$;
 
 grant execute on function public.confirm_legacy_mapping(uuid, text, text) to authenticated;
 revoke all on function public.confirm_legacy_mapping(uuid, text, text) from public, anon;
