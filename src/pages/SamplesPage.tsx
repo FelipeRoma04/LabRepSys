@@ -54,6 +54,9 @@ export function SamplesPage() {
   const location = useLocation()
   const { roles } = useAuth()
   const canManage = roles.some((role) => ['ADMIN', 'RECEPCION'].includes(role.code))
+  const canStructureExternalShipment = roles.some((role) =>
+    ['ADMIN', 'RECEPCION', 'ANALISTA'].includes(role.code),
+  )
   const [samples, setSamples] = useState<Sample[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [filters, setFilters] = useState<FilterValues>({
@@ -273,6 +276,16 @@ export function SamplesPage() {
           {selectedSample.tests?.length
             ? <ul>{selectedSample.tests.map((test) => <li key={test.id}>{test.test?.code ?? test.test_id} · {test.test?.parameter_name ?? ''} · {test.execution_type === 'SUBCONTRACTED' ? 'Subcontratado' : 'SA'} · {test.laboratory?.name ?? 'Laboratorio sin asignar'}</li>)}</ul>
             : <p>No hay ensayos vinculados.</p>}
+          {canStructureExternalShipment && selectedSample.tests?.some((test) => test.execution_type === 'SUBCONTRACTED') && (
+            <section className="sample-pending-section">
+              <h3>Laboratorio subcontratado</h3>
+              <p>Revisa las observaciones de la muestra y estructura manualmente el envío, sin extracción automática de datos.</p>
+              <button
+                onClick={() => navigate(`/laboratorios-externos?sample_id=${encodeURIComponent(selectedSample.id)}`)}
+                type="button"
+              >Estructurar envío</button>
+            </section>
+          )}
           <h3>Normativa sugerida</h3>
           {suggestedRegulations.length
             ? <ul>{suggestedRegulations.map((regulation, index) => (

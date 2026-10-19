@@ -137,6 +137,13 @@ describe('parseResult', () => {
     }
   })
 
+  it('conserva espacios y texto originales exactamente como se recibieron', () => {
+    const raw = '  < 0,040  '
+    const result = parseResult(raw)
+    expect(result.numericValue).toBeCloseTo(0.04)
+    expect(result.originalText).toBe(raw)
+  })
+
   // ── Vacío ────────────────────────────────────────────────────────────────────
   it('string vacío → qualitative pendiente', () => {
     const r = parseResult('')

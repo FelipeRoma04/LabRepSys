@@ -18,7 +18,8 @@ import { ReceptionPage } from './pages/ReceptionPage'
 import { SamplesPage } from './pages/SamplesPage'
 import { FieldDataPage } from './pages/FieldDataPage'
 import { ExternalShipmentsPage } from './pages/ExternalShipmentsPage'
-import { PendingExternalReportsPage } from './pages/PendingExternalReportsPage'
+import { ResultsLoadPage } from './pages/ResultsLoadPage'
+import { ResultsPendingPage } from './pages/ResultsPendingPage'
 import type { CatalogTable } from './types/catalogs'
 
 const catalogRoutes: Record<string, CatalogTable> = {
@@ -39,7 +40,8 @@ function navigationPage(path: string, title: string) {
   if (path === '/muestras' || path === '/muestras/buscar') return <SamplesPage />
   if (path === '/muestras/datos-de-campo') return <FieldDataPage />
   if (path === '/laboratorios-externos') return <ExternalShipmentsPage />
-  if (path === '/resultados/pendientes') return <PendingExternalReportsPage />
+  if (path === '/resultados/carga') return <ResultsLoadPage />
+  if (path === '/resultados/pendientes') return <ResultsPendingPage />
   const catalogTable = catalogRoutes[path]
   if (catalogTable) return <CatalogPage table={catalogTable} />
   if (path === diagnosticsRoute) return <DiagnosticsPage />

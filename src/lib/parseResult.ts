@@ -56,7 +56,7 @@ const OPERATORS: ResultOperator[] = ['<=', '>=', '<', '>', '=']
  */
 export function parseResult(raw: string): ParsedResult {
   const trimmed = raw.trim()
-  const originalText = trimmed
+  const originalText = raw
 
   if (!trimmed) {
     return {

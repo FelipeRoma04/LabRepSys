@@ -36,9 +36,22 @@ export const navigationGroups: NavigationGroup[] = [
   {
     label: 'Resultados',
     items: [
-      { label: 'Carga de resultados', path: '/resultados/carga' },
-      { label: 'Pendientes', path: '/resultados/pendientes' },
+      {
+        label: 'Carga de resultados',
+        path: '/resultados/carga',
+        roles: ['ADMIN', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
+      },
+      {
+        label: 'Pendientes',
+        path: '/resultados/pendientes',
+        roles: ['ADMIN', 'RECEPCION', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
+      },
       { label: 'Conciliación', path: '/resultados/conciliacion' },
+      {
+        label: 'Laboratorios externos',
+        path: '/laboratorios-externos',
+        roles: ['ADMIN', 'RECEPCION', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
+      },
     ],
   },
   {

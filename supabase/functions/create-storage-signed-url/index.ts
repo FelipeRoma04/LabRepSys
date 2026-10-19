@@ -133,7 +133,19 @@ Deno.serve(async (request) => {
       return respond(503, { error: 'No fue posible verificar el permiso de descarga.' })
     }
     if (!attachment) {
-      return respond(404, { error: 'El adjunto no existe o fue retirado.' })
+      const { data: resultImport, error: importError } = await adminClient
+        .from('result_imports')
+        .select('id')
+        .eq('storage_path', path)
+        .maybeSingle()
+
+      if (importError) {
+        console.error('No fue posible verificar la importación asociada al archivo.')
+        return respond(503, { error: 'No fue posible verificar el permiso de descarga.' })
+      }
+      if (!resultImport) {
+        return respond(404, { error: 'El archivo no está asociado a un adjunto ni a una importación.' })
+      }
     }
   }
 

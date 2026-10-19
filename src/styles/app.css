@@ -710,6 +710,181 @@
   color: #22653e;
 }
 
+.external-shipment-form,
+.external-shipment-list,
+.external-pending-group {
+  margin-top: 24px;
+}
+
+.external-shipment-form > h2,
+.external-shipment-list > h2,
+.external-pending-group > h2 {
+  margin: 0 0 14px;
+  color: #344452;
+  font-size: 1.15rem;
+}
+
+.external-test-options {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 14px;
+}
+
+.external-test-options legend {
+  padding: 0 6px;
+  color: #344452;
+  font-weight: 650;
+}
+
+.catalog-form .external-test-options label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 400;
+}
+
+.catalog-form .external-test-options input {
+  min-width: auto;
+  min-height: auto;
+}
+
+.external-warning {
+  margin: 16px 0;
+  border-left: 4px solid #a56508;
+  background: #fff7e6;
+  padding: 14px 18px;
+  color: #684508;
+}
+
+.external-warning p {
+  margin: 8px 0;
+}
+
+.external-warning ul {
+  margin-bottom: 0;
+}
+
+.external-overdue {
+  color: #9b2c25;
+  font-weight: 700;
+}
+
+.result-selection,
+.paste-column-mapping {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.result-selection label,
+.paste-column-mapping label,
+.result-manual-row label {
+  display: grid;
+  gap: 6px;
+  color: #344452;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.result-selection select,
+.paste-column-mapping select,
+.result-import-review select,
+.result-manual-row input,
+.result-manual-row select {
+  min-width: 190px;
+  min-height: 40px;
+  border: 1px solid #bdc9d2;
+  border-radius: 6px;
+  background: #fff;
+  padding: 8px 10px;
+  color: #202b36;
+  font: inherit;
+  font-weight: 400;
+}
+
+.result-import-review,
+.result-saved-list,
+.result-pdf-capture {
+  margin-top: 24px;
+}
+
+.result-import-review h2,
+.result-saved-list h2,
+.result-pdf-capture h2 {
+  color: #344452;
+  font-size: 1.15rem;
+}
+
+.result-manual-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin: 16px 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  padding: 14px;
+}
+
+.result-manual-row input {
+  width: min(100%, 240px);
+}
+
+.result-pdf-review {
+  margin-top: 20px;
+}
+
+.result-pdf-review h2 {
+  color: #344452;
+  font-size: 1rem;
+}
+
+.result-pdf-review iframe {
+  width: 100%;
+  min-height: 520px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #f3f5f7;
+}
+
+.result-confirm-actions {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.result-confirm-actions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  font-size: 0.78rem;
+}
+
+.result-confirm-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.result-import-review code {
+  overflow-wrap: anywhere;
+}
+
+.result-import-review .fielddata-warning {
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.result-saved-list .data-table td p {
+  margin: 4px 0;
+  font-size: 0.8rem;
+}
+
 .catalog-import-errors {
   margin-bottom: 18px;
   border: 1px solid #edc7c5;
