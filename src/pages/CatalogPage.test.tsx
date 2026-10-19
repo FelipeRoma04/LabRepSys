@@ -1,5 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
+function type(element: HTMLElement, value: string) {
+  fireEvent.change(element, { target: { value } })
+}
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CatalogPage } from './CatalogPage'
@@ -53,8 +57,8 @@ describe('Catálogos', () => {
 
     render(<CatalogPage table="matrices" />)
     await user.click(await screen.findByRole('button', { name: 'Crear registro' }))
-    await user.type(screen.getByLabelText(/Código/), 'AGUA')
-    await user.type(screen.getByLabelText(/Nombre/), 'Agua')
+    type(screen.getByLabelText(/Código/), 'AGUA')
+    type(screen.getByLabelText(/Nombre/), 'Agua')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => {
@@ -97,8 +101,7 @@ describe('Catálogos', () => {
 
     render(<CatalogPage table="tests" />)
     await user.click(await screen.findByRole('button', { name: 'Nueva versión' }))
-    await user.clear(screen.getByLabelText('Unidad'))
-    await user.type(screen.getByLabelText('Unidad'), 'µg/L')
+    type(screen.getByLabelText('Unidad'), 'µg/L')
     fireEvent.change(screen.getByLabelText(/Vigente desde/), {
       target: { value: '2026-10-17' },
     })
@@ -143,8 +146,8 @@ describe('Catálogos', () => {
     expect(editLink).toHaveAttribute('href', '/catalogos/plantillas/template-1/editar')
 
     await user.click(screen.getByRole('button', { name: 'Crear registro' }))
-    await user.type(screen.getByLabelText(/Código/), 'RSA')
-    await user.type(screen.getByLabelText(/Versión/), '1')
+    type(screen.getByLabelText(/Código/), 'RSA')
+    type(screen.getByLabelText(/Versión/), '1')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => {

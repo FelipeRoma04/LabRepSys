@@ -1,5 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
+function type(element: HTMLElement, value: string) {
+  fireEvent.change(element, { target: { value } })
+}
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ClientsPage } from './ClientsPage'
 import { QuotesPage } from './QuotesPage'
@@ -89,8 +93,8 @@ describe('gestión comercial', () => {
     render(<ClientsPage />)
     await screen.findByText('Laboratorio de Prueba')
     await user.click(screen.getByRole('button', { name: 'Nuevo cliente' }))
-    await user.type(screen.getByLabelText('Razón social'), 'Laboratorio Nuevo')
-    await user.type(screen.getByLabelText('NIT'), client.nit)
+    type(screen.getByLabelText('Razón social'), 'Laboratorio Nuevo')
+    type(screen.getByLabelText('NIT'), client.nit)
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     expect(await screen.findByText(/Ya existe un cliente con ese NIT/)).toBeInTheDocument()
@@ -107,7 +111,7 @@ describe('gestión comercial', () => {
     render(<ClientsPage />)
     await screen.findByText('Laboratorio de Prueba')
     await user.click(screen.getByRole('button', { name: 'Nuevo cliente' }))
-    await user.type(screen.getByLabelText('Razón social'), 'Laboratorio de Prueba Norte')
+    type(screen.getByLabelText('Razón social'), 'Laboratorio de Prueba Norte')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     expect(await screen.findByText(/Se encontraron razones sociales similares/)).toBeInTheDocument()
@@ -124,8 +128,8 @@ describe('gestión comercial', () => {
     await screen.findByText('Laboratorio de Prueba')
     await user.click(screen.getByRole('button', { name: 'Detalle' }))
     await user.click(screen.getByRole('button', { name: 'Agregar contacto' }))
-    await user.type(screen.getByLabelText('Nombre'), 'Ana Contacto')
-    await user.type(screen.getByLabelText('Correo'), 'ana@example.test')
+    type(screen.getByLabelText('Nombre'), 'Ana Contacto')
+    type(screen.getByLabelText('Correo'), 'ana@example.test')
     await user.click(screen.getByRole('button', { name: 'Guardar contacto' }))
 
     await waitFor(() => expect(mocks.saveContact).toHaveBeenCalledWith(
@@ -144,10 +148,10 @@ describe('gestión comercial', () => {
     await user.click(screen.getByLabelText(/SA001 · pH/))
     expect(screen.getByText(/ensayo marcado como no emitible/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Agregar normativa' }))
-    await user.type(screen.getByLabelText('Norma'), 'Resolución acordada')
-    await user.type(screen.getByLabelText('Artículo'), '5')
+    type(screen.getByLabelText('Norma'), 'Resolución acordada')
+    type(screen.getByLabelText('Artículo'), '5')
     await user.selectOptions(screen.getByLabelText('Tipo de descarga'), 'ARD')
-    await user.type(screen.getByLabelText('Regla de decisión (texto libre)'), 'Regla acordada')
+    type(screen.getByLabelText('Regla de decisión (texto libre)'), 'Regla acordada')
     await user.click(screen.getByRole('button', { name: 'Guardar borrador' }))
 
     await waitFor(() => expect(mocks.saveQuote).toHaveBeenCalledWith(null, expect.objectContaining({
