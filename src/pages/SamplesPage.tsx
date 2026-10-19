@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { EmptyState } from '../components/EmptyState'
@@ -18,6 +18,8 @@ import {
 } from '../services/samples'
 import type { Client } from '../types/commercial'
 import type { Sample } from '../types/samples'
+
+const ExcelImportModal = lazy(() => import('../features/import/ExcelImportModal').then((module) => ({ default: module.ExcelImportModal })))
 
 type FilterValues = {
   search: string
@@ -77,6 +79,7 @@ export function SamplesPage() {
   const [importRows, setImportRows] = useState<CsvSamplePreviewRow[] | null>(null)
   const [importing, setImporting] = useState(false)
   const [importErrors, setImportErrors] = useState<{ row: number; message: string }[]>([])
+  const [excelImportOpen, setExcelImportOpen] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
   const reload = useCallback(async () => {
@@ -231,6 +234,7 @@ export function SamplesPage() {
           <div className="catalog-header-actions">
             {canManage && <button className="catalog-primary-button" onClick={() => navigate('/muestras/recepcion')} type="button">Nueva recepción</button>}
             {canManage && <label className="catalog-file-button">Importar CSV<input accept=".csv,text/csv" onChange={(event) => void openImport(event)} ref={fileInput} type="file" /></label>}
+            {canManage && <button className="catalog-primary-button" onClick={() => setExcelImportOpen(true)} type="button">Importar Excel</button>}
           </div>
         )}
       />
@@ -342,6 +346,16 @@ export function SamplesPage() {
           </div>
         </div>}
       </Modal>
+      {excelImportOpen && (
+        <Suspense fallback={<LoadingState message="Cargando importador Excel…" />}>
+          <ExcelImportModal
+            onClose={() => setExcelImportOpen(false)}
+            onImported={() => void reload()}
+            open
+            target="samples"
+          />
+        </Suspense>
+      )}
     </>
   )
 }

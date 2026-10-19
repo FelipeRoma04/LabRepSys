@@ -21,6 +21,13 @@ import { ExternalShipmentsPage } from './pages/ExternalShipmentsPage'
 import { ResultsLoadPage } from './pages/ResultsLoadPage'
 import { ResultsPendingPage } from './pages/ResultsPendingPage'
 import { ReconciliationPage } from './pages/ReconciliationPage'
+import { RegulationsPage } from './pages/RegulationsPage'
+import { ValidationsPage } from './pages/ValidationsPage'
+import { ReportListPage } from './pages/ReportListPage'
+import { ReportBuilderPage } from './pages/ReportBuilderPage'
+import { ReportDetailPage } from './pages/ReportDetailPage'
+import { ReportPrintPage } from './pages/ReportPrintPage'
+import type { ReportStatus } from './types/reports'
 import type { CatalogTable } from './types/catalogs'
 
 const catalogRoutes: Record<string, CatalogTable> = {
@@ -33,6 +40,24 @@ const catalogRoutes: Record<string, CatalogTable> = {
 }
 
 const diagnosticsRoute = '/administracion/diagnostico'
+const reportListRoutes: Record<string, { status: ReportStatus[]; description: string }> = {
+  '/reportes/borradores': {
+    status: ['DRAFT', 'VALIDATING', 'RETURNED'],
+    description: 'Borradores RSA en preparación, validación o devueltos para corrección.',
+  },
+  '/reportes/revision': {
+    status: ['READY_FOR_REVIEW', 'IN_REVIEW'],
+    description: 'Reportes RSA pendientes de revisión o en revisión.',
+  },
+  '/reportes/aprobados': {
+    status: ['APPROVED'],
+    description: 'Reportes RSA aprobados pendientes del flujo de emisión.',
+  },
+  '/reportes/emitidos': {
+    status: ['ISSUED', 'RECTIFIED', 'VOIDED'],
+    description: 'Reportes RSA emitidos, rectificados o anulados.',
+  },
+}
 
 function navigationPage(path: string, title: string) {
   if (path === '/clientes') return <ClientsPage />
@@ -44,6 +69,16 @@ function navigationPage(path: string, title: string) {
   if (path === '/resultados/carga') return <ResultsLoadPage />
   if (path === '/resultados/pendientes') return <ResultsPendingPage />
   if (path === '/resultados/conciliacion') return <ReconciliationPage />
+  if (path === '/normativa') return <RegulationsPage />
+  if (path === '/validaciones') return <ValidationsPage />
+  const reportList = reportListRoutes[path]
+  if (reportList) return (
+    <ReportListPage
+      statusFilter={reportList.status}
+      title={title}
+      description={reportList.description}
+    />
+  )
   const catalogTable = catalogRoutes[path]
   if (catalogTable) return <CatalogPage table={catalogTable} />
   if (path === diagnosticsRoute) return <DiagnosticsPage />
@@ -85,6 +120,10 @@ export default function App() {
                 />
               )),
             )}
+            <Route path="/reportes/nuevo" element={<ReportBuilderPage />} />
+            <Route path="/reportes/:id/editar" element={<ReportBuilderPage />} />
+            <Route path="/reportes/:id/imprimir" element={<ReportPrintPage />} />
+            <Route path="/reportes/:id" element={<ReportDetailPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           {/* Ruta de editor de plantillas — fuera del nav, protegida */}

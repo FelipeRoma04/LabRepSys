@@ -37,6 +37,7 @@ const issueTypeLabels: Record<IssueType, string> = {
   LEGACY_CODE_NO_MAPPING: 'Código heredado sin mapeo',
   INCOMPLETE_TEST_FIELDS: 'Ensayo con campos incompletos',
   EXTERNAL_REPORT_PENDING: 'Reporte externo pendiente',
+  REGULATION_MISMATCH: 'Diferencia de normativa cotizada',
 }
 
 type Decision = ReconciliationDecision

@@ -48,10 +48,10 @@ La migración crea los buckets privados `source-files`, `report-drafts`, `issued
 Las políticas de `source-files` se completan en la migración p05 después de crear las tablas de muestras y adjuntos:
 
 - `source-files`: `ADMIN` y `RECEPCION` solo pueden subir a `samples/{sample_uuid}/{file_uuid}-{nombre}` hasta el límite de `sample.field.max_attachment_size_bytes`. El registro de metadatos verifica en RPC que la muestra y el objeto existan, que el tipo y tamaño coincidan y que la huella SHA-256 tenga el formato esperado. Descargan mediante URL firmada los usuarios activos `ADMIN`, `RECEPCION`, `ANALISTA`, `JEFE_TECNICA_CALIDAD` y `AUDITOR`; los adjuntos retirados no generan enlaces.
-- `report-drafts`, `issued-reports` y `signatures`: las escrituras quedan limitadas a `ADMIN`; para emitir enlaces firmados, la política temporal permite solo a `ADMIN`. La estructura de rutas y acceso por estado/propiedad se definirá junto con los módulos de reportes.
+- `report-drafts`, `issued-reports` y `signatures`: las escrituras quedan limitadas a `ADMIN`; para emitir enlaces firmados, la política temporal permite solo a `ADMIN`. La autorización por reporte en tablas de base de datos se amplía en p11, pero la carga y descarga de PDFs y firmas desde estos buckets continúa pendiente.
 - Usuarios no activos o sin rol funcional no pueden generar descargas. Los objetos de todos los buckets permanecen privados.
 
-No se definió una matriz completa de rutas/roles para borradores, reportes emitidos y firmas; no se habilita acceso amplio como sustituto. Cada módulo deberá ampliar estas reglas en una nueva migración y validar la relación del objeto con la entidad y el estado correspondiente antes de conceder acceso.
+No se habilita acceso amplio a los buckets de reportes. Cada ruta de objeto debe validar la relación con el reporte y su estado antes de conceder acceso.
 
 ## Catálogos
 
@@ -87,7 +87,25 @@ Solo usuarios activos con ANALISTA o ADMIN pueden detectar y resolver. JEFE_TECN
 
 `seed_demo_reconciliation.sql` es **manual y solo para desarrollo/pruebas**. Requiere una muestra real `AG0346` existente y crea casos marcados DEMO asociados a esa muestra; no se ejecuta con `db push`, no lo agregues a `seed.sql` ni lo ejecutes en producción. Para instalar la migración, usa `npx supabase db push` o ejecuta su SQL en el SQL Editor después de las migraciones anteriores. No ejecutes el seed DEMO para validar producción.
 
+Las pruebas de base de datos p08 están en `tests/database/60_reconciliation.sql` y se ejecutan contra un proyecto de pruebas con `npx supabase test db`.
+
 La importación CSV requiere código, cliente (NIT o razón social) y matriz (código o nombre); acepta además plan, punto y fecha. La vista previa señala código inválido, cliente o matriz no encontrados y fechas futuras o con año distinto, sin corregir fechas automáticamente. Las filas inválidas se excluyen y las advertencias permanecen para revisión. La búsqueda usa filtros combinables de texto, estado y fecha de recepción.
+
+## Normativa y límites (p09)
+
+La migración `20261019130000_regulations_workflow.sql` mantiene la estructura de la Resolución 631 de 2015 sin precargar límites reales. La versión inicial es un borrador con los artículos 8 a 16 marcados explícitamente como pendientes de transcripción oficial. La importación CSV crea versiones DRAFT y valida cada fila contra un código SA activo; solo ADMIN puede activar una versión. La activación de una nueva versión no cambia ni retira las anteriores.
+
+La plantilla descargable contiene los encabezados `article`, `activity`, `discharge_type`, `description`, `test_code`, `limit_operator`, `limit_value`, `limit_text`, `unit` y `special_value`. Cada fila requiere un límite numérico con operador o un valor especial (`N_A`, `N_E`, `N_R`, `NOT_SPECIFIED`, `ANALYSIS_AND_REPORT`, `NONE`); no se deben sustituir valores desconocidos por cero. La importación CSV se realiza desde la aplicación como ADMIN.
+
+ANALISTA y ADMIN confirman las actividades normativas de cada muestra mediante `confirm_sample_regulations`; las escrituras directas están revocadas. Se conservan fuente, columna, confirmador y motivo. Si la selección difiere de la cotización, se requiere motivo y la decisión queda registrada como inconsistencia de conciliación con auditoría. Los roles de lectura no pueden administrar, importar ni confirmar. El panel de la aplicación cita DP-007 a DP-010 y no declara conformidad ni calcula reglas pendientes.
+
+## Reportes RSA: borrador, revisión y aprobación (p11)
+
+`20261019160000_rsa_workflow_hardening.sql` completa el flujo de borradores: `save_report_draft` guarda composición y comentarios en una transacción; exige muestras del mismo cliente, contacto de ese cliente cuando se selecciona y plantilla aprobada si se proporciona. Solo se incluyen en las columnas del reporte las normativas confirmadas asociadas a las muestras. Se seleccionan resultados existentes; no se alteran ni se convierten sus valores.
+
+La pantalla del constructor consulta muestras, resultados, ensayos, clasificación SA/subcontratado, laboratorio y normativa confirmada con límites disponibles. No se permite agrupar muestras de distintos clientes; la regla configurable sigue pendiente en DP-003. La revisión, aprobación y transiciones se registran en `audit_logs`, `report_reviews` y `report_approvals`. La RPC `transition_report` reejecuta validaciones y bloquea el envío a revisión cuando hay errores bloqueantes o reportes externos pendientes. Solo el analista responsable modifica su borrador/devuelto; la Jefatura revisa y devuelve con comentario; solo Jefatura o suplente activo/vigente puede aprobar, y el preparador nunca aprueba su propio reporte. El historial se entrega por `get_report_history` con autorización por reporte.
+
+Las tablas de composición, revisión, aprobación, comentarios, snapshots y archivos aplican RLS por reporte; los campos de estado/revisión/aprobación no se actualizan directamente. Las operaciones de emisión, rectificación, snapshot inmutable y gestión de PDF pertenecen a p12; el acceso de Storage a PDFs y firmas sigue pendiente de integración segura.
 
 ## Datos de campo y adjuntos
 

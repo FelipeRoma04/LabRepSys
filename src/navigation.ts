@@ -62,16 +62,20 @@ export const navigationGroups: NavigationGroup[] = [
     label: 'Normativa y validación',
     items: [
       { label: 'Normativa', path: '/normativa' },
-      { label: 'Validaciones', path: '/validaciones' },
+      {
+        label: 'Validaciones',
+        path: '/validaciones',
+        roles: ['ADMIN', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
+      },
     ],
   },
   {
     label: 'Reportes RSA',
     items: [
-      { label: 'Borradores', path: '/reportes/borradores' },
-      { label: 'En revisión', path: '/reportes/revision' },
-      { label: 'Aprobados', path: '/reportes/aprobados' },
-      { label: 'Emitidos', path: '/reportes/emitidos' },
+      { label: 'Borradores', path: '/reportes/borradores', roles: ['ADMIN', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'] },
+      { label: 'En revisión', path: '/reportes/revision', roles: ['ADMIN', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'] },
+      { label: 'Aprobados', path: '/reportes/aprobados', roles: ['ADMIN', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'] },
+      { label: 'Emitidos', path: '/reportes/emitidos', roles: ['ADMIN', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'] },
     ],
   },
   {

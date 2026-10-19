@@ -506,11 +506,11 @@ begin
     );
   elsif issue_record.issue_type = 'INCOMPLETE_TEST_FIELDS'
      and selected_decision in ('ACCEPT_A', 'ACCEPT_B', 'MANUAL') then
-    if exists (
+    if not exists (
       select 1 from public.v_tests_issuable
-       where id = issue_record.entity_id and not issuable
+       where id = issue_record.entity_id and issuable
     ) then
-      raise exception using errcode = '22023', message = 'El ensayo sigue incompleto; complete su ficha antes de resolver la inconsistencia.';
+      raise exception using errcode = '22023', message = 'El ensayo sigue incompleto o no está vigente; complete su ficha antes de resolver la inconsistencia.';
     end if;
   elsif issue_record.issue_type = 'DUPLICATE_RESULT'
      and selected_decision in ('ACCEPT_A', 'ACCEPT_B') then

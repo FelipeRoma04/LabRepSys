@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -35,6 +37,8 @@ import {
   type CatalogRecord,
   type CatalogTable,
 } from '../types/catalogs'
+
+const ExcelImportModal = lazy(() => import('../features/import/ExcelImportModal').then((module) => ({ default: module.ExcelImportModal })))
 
 const relatedCatalogs: Partial<Record<CatalogTable, CatalogTable[]>> = {
   laboratories: ['laboratory_accreditations', 'laboratory_accredited_tests'],
@@ -131,6 +135,7 @@ export function CatalogPage({ table }: CatalogPageProps) {
   const [saving, setSaving] = useState(false)
   const [importErrors, setImportErrors] = useState<CsvImportError[] | null>(null)
   const [importing, setImporting] = useState(false)
+  const [excelImportOpen, setExcelImportOpen] = useState(false)
   const isTestVersion = selectedTable === 'tests' && editingRow !== null
   const listRequestVersion = useRef(0)
 
@@ -488,18 +493,23 @@ export function CatalogPage({ table }: CatalogPageProps) {
           canManage && (
             <div className="catalog-header-actions">
               {selectedTable === 'tests' && (
-                <label className="catalog-file-button">
-                  {importing ? 'Importando…' : 'Importar CSV'}
-                  <input
-                    accept=".csv,text/csv"
-                    disabled={importing}
-                    onChange={(event) => {
-                      void handleCsvImport(event.currentTarget.files?.[0])
-                      event.currentTarget.value = ''
-                    }}
-                    type="file"
-                  />
-                </label>
+                <>
+                  <label className="catalog-file-button">
+                    {importing ? 'Importando…' : 'Importar CSV'}
+                    <input
+                      accept=".csv,text/csv"
+                      disabled={importing}
+                      onChange={(event) => {
+                        void handleCsvImport(event.currentTarget.files?.[0])
+                        event.currentTarget.value = ''
+                      }}
+                      type="file"
+                    />
+                  </label>
+                  <button className="catalog-primary-button" onClick={() => setExcelImportOpen(true)} type="button">
+                    Importar Excel
+                  </button>
+                </>
               )}
               <button className="catalog-primary-button" onClick={openCreate} type="button">
                 Crear registro
@@ -622,6 +632,16 @@ export function CatalogPage({ table }: CatalogPageProps) {
           </div>
         </form>
       </Modal>
+      {excelImportOpen && (
+        <Suspense fallback={<LoadingState message="Cargando importador Excel…" />}>
+          <ExcelImportModal
+            onClose={() => setExcelImportOpen(false)}
+            onImported={() => void loadRows()}
+            open
+            target="tests"
+          />
+        </Suspense>
+      )}
 
       <Modal
         onClose={() => setDetailRow(null)}
