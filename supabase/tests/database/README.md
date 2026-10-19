@@ -11,9 +11,11 @@ supabase/tests/database/
   10_roles_access      Matriz de acceso por rol, auditoría inmutable, no auto-asignación de roles
   20_catalogs          Código SA válido/inválido, next_counter consecutivo, versionado de ensayos
   30_commercial        NIT único, contacto del cliente correcto, consecutivo y auditoría de cotizaciones
-  40_rsa_reports       (pendiente — tras p11) segregación, emit_report deniega y audita
+  40_rsa_reports       segregación, emisión denegada y auditoría
   50_samples_reception Código AG, escritura solo por RPC, consulta de desviaciones y laboratorio requerido
   55_field_data_attachments Valor cero frente a ausencia, coordenadas, motivo posterior a recepción, RLS y RPC
+  60_reconciliation   estados, permisos y auditoría de conciliación
+  70_excel_import_batches lotes idempotentes, archivos y resultados de importación
 ```
 
 ## Cómo ejecutar

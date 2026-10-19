@@ -1,7 +1,6 @@
 # Guía de Despliegue — LabRepSys
 
-> **Última revisión:** 2026-10-17  
-> **Rama:** `feature/a07-cicd`
+> **Última revisión:** 2026-10-19
 
 ---
 
@@ -54,6 +53,14 @@ npx supabase db push
 ```
 
 Alternativa manual: ejecuta los archivos de `supabase/migrations/` en orden en el **SQL Editor** del dashboard, luego `supabase/seed.sql`.
+
+Después de aplicar cambios, confirma que no queden versiones pendientes:
+
+```bash
+npx supabase migration list --linked
+```
+
+Cada archivo de migración debe tener una versión única. Si una migración falla a mitad de camino, corrige el SQL para que pueda reintentarse sin perder datos y vuelve a ejecutar `db push`; no marques una migración fallida como aplicada.
 
 ### 4. Crear el primer ADMIN
 
@@ -190,3 +197,7 @@ Si un despliegue falla o introduce una regresión:
 - [ ] Las rutas protegidas redirigen a `/login` si no hay sesión
 - [ ] `service_role` no aparece en el bundle: `curl <url-pages> | grep service_role` (debe estar vacío)
 - [ ] Las Edge Functions están desplegadas y responden (probar descarga firmada)
+
+## Respaldo y restauración
+
+Sigue [RESPALDO.md](./RESPALDO.md) para respaldar esquema, datos y archivos privados, y para ensayar una restauración en un proyecto separado. Los objetivos RPO/RTO continúan pendientes de decisión en DP-016; no se deben presentar las frecuencias provisionales como objetivos aprobados.

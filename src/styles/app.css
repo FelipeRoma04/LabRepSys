@@ -400,6 +400,217 @@
   color: var(--color-muted);
 }
 
+.print-container {
+  padding: 12px 0;
+}
+
+.print-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.print-disclaimer {
+  flex-basis: 100%;
+  margin: 0;
+  color: #795611;
+}
+
+.print-file-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #344452;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.rsa-sheet {
+  position: relative;
+  width: min(100%, 900px);
+  min-height: 1120px;
+  margin: 0 auto;
+  padding: 38px;
+  border: 1px solid #cbd4dc;
+  background: #fff;
+  box-shadow: 0 8px 26px rgb(27 47 63 / 10%);
+  color: #202a32;
+  font-size: 0.82rem;
+}
+
+.rsa-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid #174e78;
+}
+
+.rsa-header h1,
+.rsa-header p,
+.rsa-header-meta p {
+  margin: 0 0 6px;
+}
+
+.rsa-header h1 {
+  color: #174e78;
+  font-size: 1.25rem;
+}
+
+.rsa-header-meta {
+  text-align: right;
+}
+
+.rsa-client-info,
+.rsa-samples-section,
+.rsa-results-section,
+.rsa-regulations-section,
+.rsa-declarations {
+  margin-top: 20px;
+}
+
+.rsa-sheet h2 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.rsa-info-table,
+.rsa-results-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rsa-info-table th,
+.rsa-info-table td,
+.rsa-results-table th,
+.rsa-results-table td {
+  padding: 7px 8px;
+  border: 1px solid #cbd4dc;
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+}
+
+.rsa-info-table thead,
+.rsa-results-table thead {
+  display: table-header-group;
+  background: #edf3f7;
+}
+
+.rsa-declarations {
+  padding-top: 14px;
+  border-top: 1px solid #cbd4dc;
+}
+
+.rsa-signature {
+  width: 240px;
+  margin: 48px auto 0;
+  text-align: center;
+}
+
+.signature-line {
+  height: 36px;
+  border-bottom: 1px solid #667783;
+}
+
+.rsa-footer-note {
+  margin-top: 24px;
+  color: #526373;
+  text-align: right;
+}
+
+.page-number::after {
+  content: counter(page);
+}
+
+.page-count::after {
+  content: counter(pages);
+}
+
+.watermark {
+  position: absolute;
+  top: 42%;
+  left: 12%;
+  z-index: 0;
+  color: rgb(170 35 35 / 10%);
+  font-size: 5rem;
+  font-weight: 800;
+  transform: rotate(-28deg);
+  pointer-events: none;
+}
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .sidebar,
+  .topbar,
+  .layout-error,
+  .mobile-scrim,
+  .print-controls,
+  .no-print {
+    display: none !important;
+  }
+
+  .app-main {
+    margin: 0;
+  }
+
+  .content-area {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-container {
+    padding: 0;
+  }
+
+  .rsa-sheet {
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    font-size: 9pt;
+  }
+
+  .rsa-results-table tr,
+  .rsa-info-table tr {
+    break-inside: avoid;
+  }
+
+  .rsa-results-table thead {
+    display: table-header-group;
+  }
+}
+
+@media (max-width: 560px) {
+  .rsa-sheet {
+    min-height: 0;
+    padding: 18px;
+    font-size: 0.75rem;
+  }
+
+  .rsa-header {
+    flex-direction: column;
+  }
+
+  .rsa-header-meta {
+    text-align: left;
+  }
+}
+
 .logout-button:disabled,
 .login-form button:disabled,
 .standalone-actions button:disabled {

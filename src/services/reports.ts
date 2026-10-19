@@ -4,6 +4,7 @@
  */
 import { supabase } from '../lib/supabase'
 import { callRpc } from './rpc'
+import { createStorageSignedUrl } from './storage'
 import type { Report, ReportStatus, TransitionResult } from '../types/reports'
 
 function db() {
@@ -74,4 +75,56 @@ export async function getSnapshot(reportId: string) {
     .maybeSingle()
   if (error) throw error
   return data
+}
+
+export interface ReportFileRow {
+  id: string
+  report_id: string
+  file_type: 'DRAFT_PDF' | 'FINAL_PDF'
+  storage_path: string
+  sha256: string
+  created_at: string
+}
+
+export async function listReportFiles(reportId: string): Promise<ReportFileRow[]> {
+  const { data, error } = await db().from('report_files')
+    .select('id, report_id, file_type, storage_path, sha256, created_at')
+    .eq('report_id', reportId).order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as ReportFileRow[]
+}
+
+export async function uploadFinalReportPdf(reportId: string, file: File): Promise<ReportFileRow> {
+  if (file.type !== 'application/pdf' && !file.name.toLocaleLowerCase().endsWith('.pdf')) {
+    throw new Error('Selecciona un archivo PDF.')
+  }
+  if (!globalThis.crypto?.subtle) throw new Error('Este navegador no permite calcular SHA-256 en un contexto seguro.')
+  const bytes = await file.arrayBuffer()
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
+  const sha256 = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('')
+  const safeName = file.name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-120) || 'reporte.pdf'
+  const storagePath = `reports/${reportId}/${globalThis.crypto.randomUUID()}-${safeName}`
+  const { error: uploadError } = await db().storage.from('issued-reports').upload(storagePath, file, {
+    contentType: 'application/pdf',
+    upsert: false,
+  })
+  if (uploadError) throw uploadError
+
+  const result = await callRpc<{ ok: boolean; file_id?: string; message?: string }>('register_issued_report_file', {
+    p_report_id: reportId,
+    p_storage_path: storagePath,
+    p_sha256: sha256,
+  })
+  if (result.error || !result.data?.ok) {
+    await db().storage.from('issued-reports').remove([storagePath])
+    throw result.error ?? new Error(result.data?.message ?? 'No se pudo registrar el PDF final.')
+  }
+
+  const row = (await listReportFiles(reportId)).find((item) => item.id === result.data?.file_id)
+  if (!row) throw new Error('El PDF se subió, pero no se pudo recuperar el registro del archivo.')
+  return row
+}
+
+export async function getFinalReportPdfUrl(path: string): Promise<string> {
+  return createStorageSignedUrl('issued-reports', path)
 }

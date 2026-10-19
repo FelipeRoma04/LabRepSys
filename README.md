@@ -36,6 +36,17 @@ La clave anon está diseñada para uso en el cliente. No pongas claves `service_
 | `npm test` | Pruebas unitarias con Vitest |
 | `npm run preview` | Vista previa de la compilación |
 
+## Documentación operativa
+
+- [Estado de implementación y trazabilidad](./docs/IMPLEMENTATION_STATUS.md)
+- [Informe de pruebas y plan E2E manual](./docs/TEST_REPORT.md)
+- [Lista de revisión de seguridad](./docs/SECURITY_CHECKLIST.md)
+- [Despliegue](./docs/DEPLOYMENT.md)
+- [Respaldo y restauración](./docs/RESPALDO.md)
+- [Accesibilidad](./docs/ACCESIBILIDAD.md)
+
+Para validar localmente antes de publicar, ejecutar `npm test`, `npm run lint` y `npm run build`. Las pruebas pgTAP requieren Docker local o un proyecto Supabase dedicado; ver [supabase/tests/database/README.md](./supabase/tests/database/README.md). No ejecutar pruebas SQL contra producción.
+
 ## Supabase
 
 La configuración de Supabase está en `supabase/`. No se requiere Docker para trabajar contra el proyecto alojado en Supabase; no se incluye un flujo local con contenedores.
