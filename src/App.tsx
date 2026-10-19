@@ -20,6 +20,7 @@ import { FieldDataPage } from './pages/FieldDataPage'
 import { ExternalShipmentsPage } from './pages/ExternalShipmentsPage'
 import { ResultsLoadPage } from './pages/ResultsLoadPage'
 import { ResultsPendingPage } from './pages/ResultsPendingPage'
+import { ReconciliationPage } from './pages/ReconciliationPage'
 import type { CatalogTable } from './types/catalogs'
 
 const catalogRoutes: Record<string, CatalogTable> = {
@@ -42,6 +43,7 @@ function navigationPage(path: string, title: string) {
   if (path === '/laboratorios-externos') return <ExternalShipmentsPage />
   if (path === '/resultados/carga') return <ResultsLoadPage />
   if (path === '/resultados/pendientes') return <ResultsPendingPage />
+  if (path === '/resultados/conciliacion') return <ReconciliationPage />
   const catalogTable = catalogRoutes[path]
   if (catalogTable) return <CatalogPage table={catalogTable} />
   if (path === diagnosticsRoute) return <DiagnosticsPage />

@@ -188,7 +188,7 @@ export async function listPendingResults(): Promise<PendingResult[]> {
         test:tests(code, parameter_name, laboratory_id, laboratory:laboratories(name)),
         laboratory:laboratories(id, name)
       `),
-    db().from('results').select('sample_id, test_id, laboratory_id'),
+    db().from('results').select('sample_id, test_id, laboratory_id, status'),
   ])
   if (tests.error) throw tests.error
   if (results.error) throw results.error
@@ -208,6 +208,7 @@ export async function listPendingResults(): Promise<PendingResult[]> {
     const hasResult = (results.data ?? []).some((result) =>
       result.sample_id === row.sample_id &&
       result.test_id === row.test_id &&
+      result.status !== 'REJECTED' &&
       (laboratoryId === null || result.laboratory_id === laboratoryId),
     )
     if (hasResult) return []
@@ -230,7 +231,7 @@ export async function listPendingResults(): Promise<PendingResult[]> {
 export async function listIssues(sampleId?: string): Promise<ReconciliationIssue[]> {
   let q = db()
     .from('reconciliation_issues')
-    .select('*, sample:samples(code)')
+    .select('*, sample:samples(code), decisions:reconciliation_decisions(*)')
     .order('created_at', { ascending: false })
   if (sampleId) q = q.eq('sample_id', sampleId)
   const { data, error } = await q

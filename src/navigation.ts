@@ -46,7 +46,11 @@ export const navigationGroups: NavigationGroup[] = [
         path: '/resultados/pendientes',
         roles: ['ADMIN', 'RECEPCION', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
       },
-      { label: 'Conciliación', path: '/resultados/conciliacion' },
+      {
+        label: 'Conciliación',
+        path: '/resultados/conciliacion',
+        roles: ['ADMIN', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],
+      },
       {
         label: 'Laboratorios externos',
         path: '/laboratorios-externos',

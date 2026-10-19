@@ -20,6 +20,9 @@ alter table public.reconciliation_issues
     'EXTERNAL_REPORT_PENDING'
   ));
 
+alter table public.reconciliation_issues
+  alter column sample_id drop not null;
+
 -- Preserve the legacy demo rows while disconnecting their invalid sentinel sample UUID.
 update public.reconciliation_issues
    set is_demo = true,
@@ -35,7 +38,6 @@ update public.reconciliation_issues
  where is_demo and fingerprint is null;
 
 alter table public.reconciliation_issues
-  alter column sample_id drop not null,
   add constraint reconciliation_issues_sample_fkey
     foreign key (sample_id) references public.samples(id) on delete restrict,
   add constraint reconciliation_issues_demo_sample_check check (
@@ -45,9 +47,10 @@ alter table public.reconciliation_issues
   add constraint reconciliation_issues_source_page_check
     check (source_page is null or source_page > 0);
 
-create unique index if not exists reconciliation_issues_fingerprint_unique
+drop index if exists public.reconciliation_issues_fingerprint_unique;
+create unique index reconciliation_issues_fingerprint_unique
   on public.reconciliation_issues (fingerprint)
-  where fingerprint is not null;
+  where fingerprint is not null and status = 'OPEN';
 
 drop trigger if exists reconciliation_decisions_close_issue
   on public.reconciliation_decisions;
@@ -74,6 +77,28 @@ revoke insert, update, delete on public.reconciliation_issues from authenticated
 revoke insert, update, delete on public.reconciliation_decisions from authenticated;
 grant select on public.reconciliation_issues, public.reconciliation_decisions to authenticated;
 
+create or replace function public.try_parse_reconciliation_date(date_text text)
+returns date
+language plpgsql
+stable
+set search_path = pg_catalog
+as $$
+begin
+  if date_text ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then
+    return date_text::date;
+  elsif date_text ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}[ T]' then
+    return date_text::timestamptz::date;
+  end if;
+  return null;
+exception
+  when invalid_datetime_format or datetime_field_overflow then
+    return null;
+end;
+$$;
+
+revoke all on function public.try_parse_reconciliation_date(text)
+  from public, anon, authenticated;
+
 create or replace function public.detect_reconciliation_issues(target_sample_id uuid)
 returns integer
 language plpgsql
@@ -86,7 +111,9 @@ declare
   issue_row record;
   fingerprint_value text;
 begin
-  if auth.uid() is null or not public.has_role('ANALISTA') and not public.has_role('ADMIN') then
+  if auth.uid() is null or (
+    not public.has_role('ANALISTA') and not public.has_role('ADMIN')
+  ) then
     raise exception using errcode = '42501', message = 'Se requiere el rol ANALISTA o ADMIN activo.';
   end if;
   select * into sample_record
@@ -106,9 +133,13 @@ begin
            import_record.storage_path, null::integer as source_page
       from public.result_imports import_record
      where import_record.sample_id = target_sample_id
-       and nullif(import_record.raw_payload ->> 'sampling_date', '') is not null
+       and public.try_parse_reconciliation_date(
+             import_record.raw_payload ->> 'sampling_date'
+           ) is not null
        and sample_record.sampled_at::date is distinct from
-           (import_record.raw_payload ->> 'sampling_date')::date
+           public.try_parse_reconciliation_date(
+             import_record.raw_payload ->> 'sampling_date'
+           )
     union all
     select 'DATE_MISMATCH', 'received_at', 'Recepción', sample_record.received_at::text,
            'Fuente externa', import_record.raw_payload ->> 'received_at',
@@ -116,9 +147,13 @@ begin
            import_record.storage_path, null
       from public.result_imports import_record
      where import_record.sample_id = target_sample_id
-       and nullif(import_record.raw_payload ->> 'received_at', '') is not null
+       and public.try_parse_reconciliation_date(
+             import_record.raw_payload ->> 'received_at'
+           ) is not null
        and sample_record.received_at::date is distinct from
-           (import_record.raw_payload ->> 'received_at')::date
+           public.try_parse_reconciliation_date(
+             import_record.raw_payload ->> 'received_at'
+           )
     union all
     select 'MATRIX_MISMATCH', 'matrix', 'Recepción', matrix.code,
            'Fuente externa', import_record.raw_payload ->> 'matrix',
@@ -160,6 +195,7 @@ begin
          select 1 from public.results result_record
           where result_record.sample_id = requested.sample_id
             and result_record.test_id = requested.test_id
+            and result_record.status <> 'REJECTED'
             and (
               requested.execution_type <> 'SUBCONTRACTED'
               or result_record.laboratory_id = requested.assigned_laboratory_id
@@ -194,6 +230,8 @@ begin
         on duplicate_result.sample_id = first_result.sample_id
        and duplicate_result.test_id = first_result.test_id
        and duplicate_result.laboratory_id = first_result.laboratory_id
+       and first_result.status <> 'REJECTED'
+       and duplicate_result.status <> 'REJECTED'
        and duplicate_result.id > first_result.id
       left join public.result_imports import_record on import_record.id = duplicate_result.source_import_id
      where first_result.sample_id = target_sample_id
@@ -250,7 +288,7 @@ begin
       issue_row.entity_id, issue_row.related_entity_id, issue_row.storage_path,
       issue_row.source_page, fingerprint_value, auth.uid(), auth.uid()
     )
-    on conflict (fingerprint) where fingerprint is not null do nothing;
+    on conflict (fingerprint) where fingerprint is not null and status = 'OPEN' do nothing;
     if found then
       issue_count := issue_count + 1;
     end if;
@@ -276,8 +314,12 @@ as $$
 declare
   issue_record public.reconciliation_issues%rowtype;
   selected_result public.results%rowtype;
+  selected_import_row public.import_rows%rowtype;
+  selected_sample_test public.sample_tests%rowtype;
+  selected_sample public.samples%rowtype;
   old_data jsonb;
   new_data jsonb;
+  correction_data jsonb;
   expected_value text;
   selected_source_valid boolean := false;
   role_is_jtc boolean;
@@ -324,33 +366,66 @@ begin
      (not selected_source_valid or expected_value is distinct from selected_value) then
     raise exception using errcode = '22023', message = 'La fuente o el valor seleccionado no coincide con la inconsistencia.';
   end if;
-  if selected_decision in ('MANUAL', 'ACCEPT_A', 'ACCEPT_B')
-     and issue_record.issue_type in ('MISSING_RESULT', 'EXTERNAL_REPORT_PENDING') then
-    raise exception using errcode = '22023', message = 'Cargue el resultado o reciba el reporte externo antes de cerrar esta inconsistencia.';
-  end if;
-
-  if issue_record.issue_type = 'UNREQUESTED_PARAMETER'
+  if issue_record.issue_type = 'MISSING_RESULT'
+     and selected_decision in ('ACCEPT_A', 'ACCEPT_B', 'MANUAL') then
+    if not exists (
+      select 1 from public.sample_tests requested
+      join public.results result_record
+        on result_record.sample_id = requested.sample_id
+       and result_record.test_id = requested.test_id
+       and result_record.status <> 'REJECTED'
+       and (
+         requested.execution_type <> 'SUBCONTRACTED'
+         or result_record.laboratory_id = requested.assigned_laboratory_id
+       )
+      where requested.id = issue_record.entity_id
+        and requested.sample_id = issue_record.sample_id
+    ) then
+      raise exception using errcode = '22023', message = 'Cargue y confirme el resultado antes de resolver esta inconsistencia.';
+    end if;
+  elsif issue_record.issue_type = 'EXTERNAL_REPORT_PENDING'
+     and selected_decision in ('ACCEPT_A', 'ACCEPT_B', 'MANUAL') then
+    if not exists (
+      select 1 from public.external_shipments shipment
+       where shipment.id = issue_record.entity_id
+         and shipment.sample_id = issue_record.sample_id
+         and shipment.status in ('REPORT_RECEIVED', 'CANCELLED')
+    ) then
+      raise exception using errcode = '22023', message = 'Reciba o cancele el envío externo antes de resolver esta inconsistencia.';
+    end if;
+  elsif issue_record.issue_type = 'UNREQUESTED_PARAMETER'
      and selected_decision = 'ACCEPT_A' then
     if mapped_test_id is null
       or not exists (
         select 1 from public.tests test
+         join public.v_tests_issuable issuable
+           on issuable.id = test.id and issuable.issuable
          where test.id = mapped_test_id and test.active and test.code ~ '^SA'
       ) then
       raise exception using errcode = '22023', message = 'Seleccione un ensayo SA vigente para agregarlo al alcance.';
     end if;
-    if not exists (
-      select 1 from public.import_rows import_row
+    select import_row.* into selected_import_row
+      from public.import_rows import_row
       join public.result_imports import_record on import_record.id = import_row.result_import_id
-      where import_row.id = issue_record.entity_id
-        and issue_record.sample_id = import_record.sample_id
-    ) then
+     where import_row.id = issue_record.entity_id
+       and issue_record.sample_id = import_record.sample_id
+       for update of import_row;
+    if not found then
       raise exception using errcode = 'P0002', message = 'No fue posible vincular el parámetro con su laboratorio externo.';
     end if;
+    old_data := to_jsonb(selected_import_row);
     update public.import_rows
        set mapped_test_id = resolve_reconciliation_issue.mapped_test_id,
            mapping_status = 'SUGGESTED',
            updated_by = auth.uid()
      where id = issue_record.entity_id;
+    select * into selected_import_row from public.import_rows
+     where id = issue_record.entity_id;
+    new_data := to_jsonb(selected_import_row);
+    perform public.log_audit(
+      'IMPORT_ROW_MAPPED_BY_RECONCILIATION', 'IMPORT_ROW',
+      selected_import_row.id, old_data, new_data, btrim(decision_reason)
+    );
     insert into public.sample_tests (
       sample_id, test_id, execution_type, assigned_laboratory_id, created_by, updated_by
     )
@@ -364,9 +439,23 @@ begin
           where requested.sample_id = issue_record.sample_id
             and requested.test_id = resolve_reconciliation_issue.mapped_test_id
             and requested.assigned_laboratory_id = import_record.laboratory_id
-       );
+       )
+    returning * into selected_sample_test;
+    if found then
+      perform public.log_audit(
+        'SAMPLE_TEST_ADDED_BY_RECONCILIATION', 'SAMPLE_TEST',
+        selected_sample_test.id, null, to_jsonb(selected_sample_test),
+        btrim(decision_reason)
+      );
+    end if;
   elsif issue_record.issue_type = 'UNREQUESTED_PARAMETER'
      and selected_decision = 'ACCEPT_B' then
+    select * into selected_import_row from public.import_rows
+     where id = issue_record.entity_id for update;
+    if not found then
+      raise exception using errcode = 'P0002', message = 'No se encontró la fila para rechazar el parámetro.';
+    end if;
+    old_data := to_jsonb(selected_import_row);
     update public.import_rows
        set mapped_test_id = null,
            mapping_status = 'UNMAPPED',
@@ -377,6 +466,13 @@ begin
     if not found then
       raise exception using errcode = 'P0002', message = 'No se encontró la fila para rechazar el parámetro.';
     end if;
+    select * into selected_import_row from public.import_rows
+     where id = issue_record.entity_id;
+    perform public.log_audit(
+      'IMPORT_ROW_UNMAPPED_BY_RECONCILIATION', 'IMPORT_ROW',
+      selected_import_row.id, old_data, to_jsonb(selected_import_row),
+      btrim(decision_reason)
+    );
   elsif issue_record.issue_type = 'LEGACY_CODE_NO_MAPPING'
      and selected_decision in ('ACCEPT_A', 'ACCEPT_B', 'MANUAL') then
     if mapped_test_id is null
@@ -387,6 +483,12 @@ begin
       ) then
       raise exception using errcode = '22023', message = 'El código heredado requiere un ensayo SA vigente.';
     end if;
+    select * into selected_import_row from public.import_rows
+     where id = issue_record.entity_id for update;
+    if not found or selected_import_row.mapped_test_id is not null then
+      raise exception using errcode = 'P0002', message = 'No se encontró la fila heredada sin mapear.';
+    end if;
+    old_data := to_jsonb(selected_import_row);
     update public.import_rows
        set mapped_test_id = resolve_reconciliation_issue.mapped_test_id,
            mapping_status = 'SUGGESTED',
@@ -395,6 +497,13 @@ begin
     if not found then
       raise exception using errcode = 'P0002', message = 'No se encontró la fila heredada sin mapear.';
     end if;
+    select * into selected_import_row from public.import_rows
+     where id = issue_record.entity_id;
+    perform public.log_audit(
+      'LEGACY_IMPORT_ROW_MAPPED', 'IMPORT_ROW',
+      selected_import_row.id, old_data, to_jsonb(selected_import_row),
+      btrim(decision_reason)
+    );
   elsif issue_record.issue_type = 'INCOMPLETE_TEST_FIELDS'
      and selected_decision in ('ACCEPT_A', 'ACCEPT_B', 'MANUAL') then
     if exists (
@@ -408,19 +517,22 @@ begin
     if issue_record.related_entity_id is null then
       raise exception using errcode = '22023', message = 'No se identificó el resultado duplicado para descartarlo.';
     end if;
-    update public.results
-       set status = 'REJECTED', updated_by = auth.uid()
+    select * into selected_result from public.results
      where id = case when selected_decision = 'ACCEPT_A'
                      then issue_record.related_entity_id else issue_record.entity_id end
-       and sample_id = issue_record.sample_id;
+       and sample_id = issue_record.sample_id
+     for update;
     if not found then
       raise exception using errcode = 'P0002', message = 'No se encontró el resultado duplicado.';
     end if;
+    old_data := to_jsonb(selected_result);
+    update public.results
+       set status = 'REJECTED', updated_by = auth.uid()
+     where id = selected_result.id;
+    select * into selected_result from public.results where id = selected_result.id;
     perform public.log_audit(
       'RESULT_REJECTED_DUPLICATE', 'RESULT',
-      case when selected_decision = 'ACCEPT_A'
-           then issue_record.related_entity_id else issue_record.entity_id end,
-      null, jsonb_build_object('status', 'REJECTED'), btrim(decision_reason)
+      selected_result.id, old_data, to_jsonb(selected_result), btrim(decision_reason)
     );
   elsif issue_record.issue_type in (
     'DATE_MISMATCH', 'MATRIX_MISMATCH', 'LCM_MISMATCH',
@@ -428,6 +540,12 @@ begin
   ) and selected_decision in ('ACCEPT_A', 'ACCEPT_B', 'MANUAL') then
     if issue_record.issue_type = 'DATE_MISMATCH'
        and issue_record.field_name in ('sampling_date', 'sampled_at', 'received_at') then
+      select * into selected_sample from public.samples
+       where id = issue_record.sample_id for update;
+      if not found then
+        raise exception using errcode = 'P0002', message = 'No se encontró la muestra relacionada.';
+      end if;
+      old_data := to_jsonb(selected_sample);
       if issue_record.field_name in ('sampling_date', 'sampled_at') then
         update public.samples set sampled_at = nullif(selected_value, '')::timestamptz,
           updated_by = auth.uid() where id = issue_record.sample_id;
@@ -435,7 +553,18 @@ begin
         update public.samples set received_at = selected_value::timestamptz,
           updated_by = auth.uid() where id = issue_record.sample_id;
       end if;
+      select * into selected_sample from public.samples where id = issue_record.sample_id;
+      perform public.log_audit(
+        'SAMPLE_DATE_CORRECTED_BY_RECONCILIATION', 'SAMPLE',
+        selected_sample.id, old_data, to_jsonb(selected_sample), btrim(decision_reason)
+      );
     elsif issue_record.issue_type = 'MATRIX_MISMATCH' and issue_record.field_name = 'matrix' then
+      select * into selected_sample from public.samples
+       where id = issue_record.sample_id for update;
+      if not found then
+        raise exception using errcode = 'P0002', message = 'No se encontró la muestra relacionada.';
+      end if;
+      old_data := to_jsonb(selected_sample);
       update public.samples sample
          set matrix_id = matrix.id, updated_by = auth.uid()
         from public.matrices matrix
@@ -445,6 +574,11 @@ begin
       if not found then
         raise exception using errcode = '22023', message = 'Seleccione una matriz activa reconocida en el catálogo.';
       end if;
+      select * into selected_sample from public.samples where id = issue_record.sample_id;
+      perform public.log_audit(
+        'SAMPLE_MATRIX_CORRECTED_BY_RECONCILIATION', 'SAMPLE',
+        selected_sample.id, old_data, to_jsonb(selected_sample), btrim(decision_reason)
+      );
     elsif issue_record.entity_type = 'RESULT' then
       select * into selected_result from public.results
        where id = issue_record.entity_id and sample_id = issue_record.sample_id
@@ -454,31 +588,33 @@ begin
       end if;
       old_data := to_jsonb(selected_result);
       if issue_record.field_name = 'lcm' then
-        new_data := jsonb_build_object('lcm', selected_value::numeric);
+        correction_data := jsonb_build_object('lcm', selected_value::numeric);
         update public.results set lcm = selected_value::numeric, status = 'CORRECTED',
           updated_by = auth.uid() where id = selected_result.id;
       elsif issue_record.field_name = 'method' then
-        new_data := jsonb_build_object('method_text', selected_value);
+        correction_data := jsonb_build_object('method_text', selected_value);
         update public.results set method_text = selected_value, status = 'CORRECTED',
           updated_by = auth.uid() where id = selected_result.id;
       elsif issue_record.field_name = 'unit' then
-        new_data := jsonb_build_object('unit', selected_value);
+        correction_data := jsonb_build_object('unit', selected_value);
         update public.results set unit = selected_value, status = 'CORRECTED',
           updated_by = auth.uid() where id = selected_result.id;
       elsif issue_record.field_name = 'technique' then
-        new_data := jsonb_build_object('technique_text', selected_value);
+        correction_data := jsonb_build_object('technique_text', selected_value);
         update public.results set technique_text = selected_value, status = 'CORRECTED',
           updated_by = auth.uid() where id = selected_result.id;
       else
         raise exception using errcode = '22023', message = 'Campo de conciliación no modificable.';
       end if;
+      select * into selected_result from public.results where id = selected_result.id;
+      new_data := to_jsonb(selected_result);
       insert into public.result_corrections (
         result_id, old_data, new_data, reason, corrected_by
       )
-      values (selected_result.id, old_data, new_data, btrim(decision_reason), auth.uid());
+      values (selected_result.id, old_data, correction_data, btrim(decision_reason), auth.uid());
       perform public.log_audit(
         'RESULT_CORRECTED_BY_RECONCILIATION', 'RESULT', selected_result.id,
-        old_data, old_data || new_data, btrim(decision_reason)
+        old_data, new_data, btrim(decision_reason)
       );
     else
       raise exception using errcode = '22023', message = 'Esta inconsistencia no admite una modificación automática del dato relacionado.';

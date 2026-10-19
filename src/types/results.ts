@@ -148,10 +148,10 @@ export interface ReconciliationIssue {
   entity_type?: string
   entity_id?: string
   related_entity_id?: string | null
-  source_a?: string
-  value_a?: string
-  source_b?: string
-  value_b?: string
+  source_a?: string | null
+  value_a?: string | null
+  source_b?: string | null
+  value_b?: string | null
   source_c?: string | null
   value_c?: string | null
   source_page?: number | null
@@ -159,6 +159,7 @@ export interface ReconciliationIssue {
   is_demo: boolean
   demo_sample_code?: string | null
   sample?: { code: string } | null
+  decisions?: ReconciliationIssueDecision[]
   status: ReconciliationStatus
   created_at: string
 }

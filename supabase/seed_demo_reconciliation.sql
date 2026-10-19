@@ -82,6 +82,12 @@ begin
     issue_type, field_name, source_a, value_a, source_b, value_b,
     source_c, value_c, entity_type, entity_id, related_entity_id
   )
-  on conflict (fingerprint) where fingerprint is not null do nothing;
+  where not exists (
+    select 1 from public.reconciliation_issues existing
+     where existing.is_demo
+       and existing.demo_sample_code = 'AG0346'
+       and existing.issue_type = demo.issue_type
+  )
+  on conflict (fingerprint) where fingerprint is not null and status = 'OPEN' do nothing;
 end;
 $$;
