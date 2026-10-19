@@ -16,7 +16,6 @@ import { Modal } from '../components/Modal'
 import { useAuth } from '../hooks/useAuth'
 import {
   listLegacyMappings,
-  listUnmappedLegacyCodes,
   confirmLegacyMapping,
   listQualityClientIssues,
   listQualityTestIssues,
@@ -338,6 +337,7 @@ export function MigrationAssistantPage() {
       {/* ── Modal de confirmación/rechazo ─────────────────────────────────────── */}
       {selected && decision && (
         <Modal
+          open
           title={decision === 'CONFIRMED' ? 'Confirmar mapeo' : 'Rechazar mapeo'}
           onClose={() => { setSelected(null); setDecision(null); setReason(''); setSaveError(null) }}
         >

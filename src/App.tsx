@@ -17,7 +17,8 @@ import { QuotesPage } from './pages/QuotesPage'
 import { ReceptionPage } from './pages/ReceptionPage'
 import { SamplesPage } from './pages/SamplesPage'
 import { FieldDataPage } from './pages/FieldDataPage'
-import { MigrationAssistantPage } from './pages/MigrationAssistantPage'
+import { ExternalShipmentsPage } from './pages/ExternalShipmentsPage'
+import { PendingExternalReportsPage } from './pages/PendingExternalReportsPage'
 import type { CatalogTable } from './types/catalogs'
 
 const catalogRoutes: Record<string, CatalogTable> = {
@@ -30,6 +31,20 @@ const catalogRoutes: Record<string, CatalogTable> = {
 }
 
 const diagnosticsRoute = '/administracion/diagnostico'
+
+function navigationPage(path: string, title: string) {
+  if (path === '/clientes') return <ClientsPage />
+  if (path === '/cotizaciones') return <QuotesPage />
+  if (path === '/muestras/recepcion') return <ReceptionPage />
+  if (path === '/muestras' || path === '/muestras/buscar') return <SamplesPage />
+  if (path === '/muestras/datos-de-campo') return <FieldDataPage />
+  if (path === '/laboratorios-externos') return <ExternalShipmentsPage />
+  if (path === '/resultados/pendientes') return <PendingExternalReportsPage />
+  const catalogTable = catalogRoutes[path]
+  if (catalogTable) return <CatalogPage table={catalogTable} />
+  if (path === diagnosticsRoute) return <DiagnosticsPage />
+  return <ModulePage title={title} />
+}
 
 export default function App() {
   if (!isSupabaseConfigured()) {
@@ -60,21 +75,7 @@ export default function App() {
                     <ProtectedRoute
                       allowedRoles={item.roles}
                     >
-                      {item.path === '/clientes'
-                        ? <ClientsPage />
-                        : item.path === '/cotizaciones'
-                          ? <QuotesPage />
-                          : item.path === '/muestras/recepcion'
-                            ? <ReceptionPage />
-                            : item.path === '/muestras' || item.path === '/muestras/buscar'
-                              ? <SamplesPage />
-                              : item.path === '/muestras/datos-de-campo'
-                                ? <FieldDataPage />
-                          : catalogRoutes[item.path]
-                        ? <CatalogPage table={catalogRoutes[item.path]} />
-                        : item.path === diagnosticsRoute
-                          ? <DiagnosticsPage />
-                          : <ModulePage title={item.label} />}
+                      {navigationPage(item.path, item.label)}
                     </ProtectedRoute>
                   }
                 />
