@@ -1,12 +1,12 @@
 # Informe de pruebas
 
-Fecha: 2026-10-19. Checkout local; ejecución contra entorno de desarrollo disponible.
+Fecha: 2026-10-20. Verificación repetida localmente; sin datos reales de producción.
 
 ## Verificaciones ejecutadas
 
 | Verificación | Resultado | Detalle |
 |---|---|---|
-| `npm test` | Correcto | 28 archivos, 163 pruebas pasaron. Vitest mostró una advertencia de `HTMLCanvasElement.getContext` sin canvas; no falló ninguna prueba. |
+| `npm test -- --maxWorkers=1` | Correcto | Verificación final: 28 archivos y 165 pruebas pasaron en ejecución serial. |
 | `npm run build` | Correcto con advertencia | TypeScript y Vite completaron. Chunks minificados de aplicación (694 kB) y ExcelJS (929 kB) superan 500 kB. |
 | `npm run lint` | Correcto | ESLint terminó con código 0. |
 | `npm audit --audit-level=high` | Correcto con riesgo moderado | No hay vulnerabilidades high/critical reportadas. Hay 2 advisories moderados para `uuid` transitivo de ExcelJS; `npm audit fix --force` propone downgrade mayor de ExcelJS y no se aplicó. |

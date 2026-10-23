@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { validateSampleRows } from './sampleImportService'
 import { validateTestRows } from './testImportService'
+import { escapeCsvCell, generateErrorReportCsv } from './errorReport'
 
 describe('Excel import validation', () => {
   it('rejects AG00106 and flags external laboratory observations for manual structuring', async () => {
@@ -43,4 +44,18 @@ describe('Excel import validation', () => {
     expect(result.rows[0].isValid).toBe(true)
     expect(result.rows[1].isValid).toBe(false)
   })
+
+  it('protects downloadable error CSV cells against spreadsheet formula injection', () => {
+    expect(escapeCsvCell('=1+1')).toBe("'=1+1")
+    expect(escapeCsvCell('+SUM(A1:A2)')).toBe("'+SUM(A1:A2)")
+    expect(escapeCsvCell('-1+2')).toBe("'-1+2")
+    expect(escapeCsvCell('@SUM(A1:A2)')).toBe("'@SUM(A1:A2)")
+    expect(escapeCsvCell('safe, "quoted"')).toBe('"safe, ""quoted"""')
+
+    const csv = generateErrorReportCsv([
+      { row: 2, field: 'code', severity: 'error', message: '=HYPERLINK("https://example.test")' },
+    ], 'demo.xlsx', 'samples')
+    expect(csv).toContain("'=HYPERLINK(")
+  })
+
 })

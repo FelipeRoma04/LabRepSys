@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import ExcelJS from 'exceljs'
 import { computeFileHash, loadWorkbook, readSheetRawRows } from './excelReader'
+import { validateSampleRows } from './sampleImportService'
 
 async function makeFile(): Promise<File> {
   const workbook = new ExcelJS.Workbook()
@@ -40,5 +41,32 @@ describe('Excel workbook reader', () => {
     const data = readSheetRawRows(sheet, 1)
     expect(data.totalRows).toBe(2)
     expect(data.rows).toHaveLength(1)
+  })
+
+  it('validates a real reception workbook with valid, invalid, duplicate, and external-lab rows', async () => {
+    const workbook = new ExcelJS.Workbook()
+    const sheet = workbook.addWorksheet('RECEPCION MUESTRAS')
+    sheet.addRow(['Codigo', 'NIT', 'Matriz', 'Observaciones'])
+    sheet.addRow(['AG0346', '900123456', 'AS', ''])
+    sheet.addRow(['AG00106', '900123456', 'AS', ''])
+    sheet.addRow(['AG0346', '900123456', 'AS', ''])
+    sheet.addRow(['AG0347', '900123456', 'AS', 'Enviar a laboratorio externo'])
+
+    const raw = readSheetRawRows(sheet)
+    const preview = await validateSampleRows(
+      raw.rows,
+      { code: 'Codigo', client_nit: 'NIT', matrix_code: 'Matriz', observations: 'Observaciones' },
+      'recepcion.xlsx',
+      'c'.repeat(64),
+      sheet.name,
+      {
+        clients: [{ id: 'client-1', nit: '900123456', business_name: 'Cliente de prueba' }],
+        matrices: [{ id: 'matrix-1', code: 'AS', name: 'Agua superficial' }],
+      },
+    )
+
+    expect(preview.rows.map((row) => row.isValid)).toEqual([true, false, false, true])
+    expect(preview.rows[3].requiresManualStructuring).toBe(true)
+    expect(preview.rows[2].issues.some((issue) => issue.message.includes('repetido dentro del archivo'))).toBe(true)
   })
 })

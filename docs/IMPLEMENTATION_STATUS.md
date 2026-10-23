@@ -1,6 +1,6 @@
 # Estado de implementación
 
-Revisión: 2026-10-19. Fuente de trabajo: `PROMPTS CODEX/p01` a `p14`, specs K01-K06 y código/migraciones actuales.
+Revision: 2026-10-20. Se retiraron p01-p12 completos; p13-p14 y A01-A07 quedan por trabajo pendiente, p99 por contexto. Las specs K01-K06, el codigo y las migraciones siguen como evidencia.
 
 ## Límite de trazabilidad
 
@@ -15,16 +15,30 @@ Revisión: 2026-10-19. Fuente de trabajo: `PROMPTS CODEX/p01` a `p14`, specs K01
 | Clientes y cotizaciones | Implementado según prompts | `src/pages/ClientsPage.tsx`, `QuotesPage.tsx` y migraciones comerciales. |
 | Muestras y recepción | Implementado según prompts | `ReceptionPage.tsx`, `SampleDetailPage.tsx` y migraciones de recepción. |
 | Campo y adjuntos | Implementado según prompts | `FieldDataPage.tsx`, `supabase/tests/database/55_field_data_attachments.sql`. |
-| Laboratorios externos | Parcial | Hay registro y vista de pendientes; asignaciones y notificaciones de asignación requieren modelo de destinatarios que no está especificado. |
-| Resultados e importación | Parcial | Importación y captura existen; adaptadores PDF son explícitamente stubs y OCR queda pendiente (DP-023). |
+| Laboratorios externos | Implementado según p06 | Registro, asignaciones, vista de pendientes, recepción y pruebas unitarias en `src/pages/ExternalShipmentsPage.test.tsx` y `PendingExternalReportsPage.test.tsx`. La prueba SQL/runtime pgTAP sigue sin ejecutarse por falta de Docker. |
+| Resultados e importación | Implementado según p07 | Captura/importación, parseo e idempotencia; los adaptadores PDF permanecen como stubs deliberados y OCR fuera del MVP (DP-023). Evidencia en `src/pages/ResultsLoadPage.tsx` y `src/features/import/`. |
 | Conciliación | Implementado según prompts | `ReconciliationPage.tsx`, migración `20261019120000_reconciliation_workflow.sql`; ejecutar pgTAP en proyecto de pruebas. |
-| Normativa | Parcial por decisiones | Se muestran límites y confirmaciones; no se calcula conformidad ni regla de decisión (DP-007 a DP-010). |
+| Normativa | Implementado según p09, con funciones limitadas por decisiones | Muestra límites y confirma normativa. No determina conformidad ni aplica regla de decisión mientras DP-007..010 sigan pendientes. Evidencia: `src/pages/RegulationsPage.tsx`. |
 | Validaciones | Implementado según prompts | Servicios y pruebas unitarias; flujo completo requiere prueba manual integrada. |
 | Flujo RSA, revisión y aprobación | Implementado según prompts | `ReportBuilderPage.tsx`, transiciones/RLS en migraciones; aprobación segregada. |
-| Emisión PDF y snapshot | Implementado según prompts | `ReportPrintPage.tsx`, `reports.ts`, migraciones `20261019180000` y `20261019190000`. Firma criptográfica y diseño oficial dependen de decisiones existentes (DP-012, DP-022). |
+| Emisión PDF y snapshot | Implementado según p12 | Emisión, registro privado y snapshot inmutable implementados. El mecanismo/diseño oficial de firma mantiene las decisiones DP-012 y DP-022. Evidencia: `src/services/reports.ts` y migraciones `20261019180000`, `20261019190000`. |
 | Dashboard, administración, auditoría | Implementado según prompts | `DashboardPage.tsx`, `AdministrationPage.tsx`, `AuditPage.tsx`; agrega notificaciones internas, no email/Teams (DP-027). |
 | Ayuda contextual K06 | Parcial | Botón, diálogo accesible, búsqueda, contexto y pruebas están implementados. Glosario/roles no pueden certificarse contra sección 19/4 sin `ESPECIFICACION_v0_2.md`; el panel informa esta limitación. |
 | Cierre QA p14 | Parcial | Rutas inspeccionadas y checks ejecutados; falta E2E con usuarios/datos demo y pgTAP local. Lista manual en `TEST_REPORT.md`. |
+
+## Tareas adicionales A01-A07
+
+| Tarea | Estado | Pendiente / evidencia |
+|---|---|---|
+| A01 Adaptadores PDF | Bloqueada por insumos | Los tres PDF de referencia anonimizados no estan en el repositorio. No se inventan formatos; los adaptadores actuales siguen como stubs. |
+| A02 PDF servidor | Bloqueada por especificacion/decision | Falta la seccion 9 de `ESPECIFICACION_v0_2.md` y sigue DP-022 sobre libreria/licencia. La impresion del navegador permanece disponible. |
+| A03 E2E Playwright | Pendiente de entorno aislado | No hay Playwright ni proyecto Supabase dedicado con usuarios demo. La lista manual esta en `TEST_REPORT.md`; no usar datos reales. |
+| A04 Busqueda global | No implementada | Requiere rama propia segun `PROMPTS CODEX/AGENTS.md`; la rama activa es `feature/a05-importacion-excel`. |
+| A05 Importacion Excel | Parcial, pruebas verdes | Importa ensayos/muestras, valida filas, calcula hash, audita y marca observaciones de laboratorio externo para estructuracion manual. Falta el mapeo aprobado de las hojas `LABORATORIO` y `REPORTES`; no se interpreta ni se importa a entidades por suposicion. |
+| A06 Accesibilidad | Parcial | `docs/ACCESIBILIDAD.md` registra correcciones y las rutas pendientes de axe, teclado, lector de pantalla y pruebas a 390/768 px. |
+| A07 CI/CD y respaldo | Parcial | CI, Pages, gitleaks y script de respaldo existen. `.github/dependabot.yml` tiene `updates: []`; faltan dependabot semanal, `supabase db lint` y pin de acciones por SHA. |
+
+Los prompts A01-A07 se conservan mientras haya trabajo pendiente. Se retiraran cuando cada tarea este completa y validada.
 
 ## Criterios CA y CP trazables a los prompts
 
