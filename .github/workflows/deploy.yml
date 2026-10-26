@@ -55,7 +55,7 @@ jobs:
           echo "OK: service_role no encontrado en dist/"
 
       - name: Configurar GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Cargar artefacto de Pages
         uses: actions/upload-pages-artifact@v3
