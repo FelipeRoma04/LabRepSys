@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
 import { useAuth } from '../hooks/useAuth'
@@ -142,6 +142,7 @@ export function LoginPage() {
               <input autoComplete="current-password" id="login-password" onChange={(event) => setPassword(event.target.value)} required type="password" value={password} />
               <button disabled={isSubmitting} type="submit">{isSubmitting ? 'Ingresando…' : 'Ingresar'}</button>
             </form>
+            <p className="login-description"><Link to="/forgot-password">¿Olvidaste tu contraseña?</Link></p>
           </>
         )}
       </section>

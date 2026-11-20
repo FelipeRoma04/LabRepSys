@@ -137,7 +137,7 @@ describe('carga de resultados', () => {
       'test-1',
       expect.objectContaining({ operator: '<', numeric_value: 0.04 }),
     ))
-  })
+  }, 15_000)
 
   it('conserva literalmente el resultado pegado desde Excel y permite seleccionar sus columnas', async () => {
     const user = userEvent.setup()

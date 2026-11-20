@@ -7,6 +7,7 @@ import { AccessDeniedPage } from '../pages/AccessDeniedPage'
 import { LoginPage } from '../pages/LoginPage'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import { AuthProvider } from './AuthProvider'
+import { GENERIC_LOGIN_ERROR } from './authFlow'
 
 const mocks = vi.hoisted(() => ({
   session: null as { user: { id: string; email: string } } | null,
@@ -152,7 +153,8 @@ describe('AuthProvider y rutas protegidas', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'incorrecta')
     await user.click(screen.getByRole('button', { name: 'Ingresar' }))
 
-    expect(await screen.findByText('Credenciales no válidas')).toBeInTheDocument()
+    expect(await screen.findByText(GENERIC_LOGIN_ERROR)).toBeInTheDocument()
+    expect(screen.queryByText('Credenciales no válidas')).not.toBeInTheDocument()
   })
 
   it('bloquea al usuario inactivo con un mensaje claro', async () => {
