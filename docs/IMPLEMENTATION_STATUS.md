@@ -16,7 +16,7 @@ Revision: 2026-10-20. Se retiraron p01-p12 completos; p13-p14 y A01-A07 quedan p
 | Muestras y recepción | Implementado según prompts | `ReceptionPage.tsx`, `SampleDetailPage.tsx` y migraciones de recepción. |
 | Campo y adjuntos | Implementado según prompts | `FieldDataPage.tsx`, `supabase/tests/database/55_field_data_attachments.sql`. |
 | Laboratorios externos | Implementado según p06 | Registro, asignaciones, vista de pendientes, recepción y pruebas unitarias en `src/pages/ExternalShipmentsPage.test.tsx` y `PendingExternalReportsPage.test.tsx`. La prueba SQL/runtime pgTAP sigue sin ejecutarse por falta de Docker. |
-| Resultados e importación | Implementado según p07 | Captura/importación, parseo e idempotencia; los adaptadores PDF permanecen como stubs deliberados y OCR fuera del MVP (DP-023). Evidencia en `src/pages/ResultsLoadPage.tsx` y `src/features/import/`. |
+| Resultados e importación | Implementado según p07 | Captura/importación, parseo e idempotencia; los adaptadores PDF de AGQ, Chemilab e IHA precargan filas candidatas (A01, ver `docs/ADAPTADORES_PDF.md`) y OCR sigue fuera del MVP (DP-023). Evidencia en `src/pages/ResultsLoadPage.tsx` y `src/features/import/`. |
 | Conciliación | Implementado según prompts | `ReconciliationPage.tsx`, migración `20261019120000_reconciliation_workflow.sql`; ejecutar pgTAP en proyecto de pruebas. |
 | Normativa | Implementado según p09, con funciones limitadas por decisiones | Muestra límites y confirma normativa. No determina conformidad ni aplica regla de decisión mientras DP-007..010 sigan pendientes. Evidencia: `src/pages/RegulationsPage.tsx`. |
 | Validaciones | Implementado según prompts | Servicios y pruebas unitarias; flujo completo requiere prueba manual integrada. |
@@ -30,7 +30,7 @@ Revision: 2026-10-20. Se retiraron p01-p12 completos; p13-p14 y A01-A07 quedan p
 
 | Tarea | Estado | Pendiente / evidencia |
 |---|---|---|
-| A01 Adaptadores PDF | Bloqueada por insumos | Los tres PDF de referencia anonimizados no estan en el repositorio. No se inventan formatos; los adaptadores actuales siguen como stubs. |
+| A01 Adaptadores PDF | Implementada (rama `feature/a01-adaptadores-pdf`, pendiente de PR) | Adaptadores AGQ, Chemilab e IHA con pdfjs-dist, probados contra fixtures anonimizados de los 3 informes de referencia (40, 9 y 1 filas). Conectados a la carga de resultados: página de origen, marcas y observaciones por fila; nada se confirma solo. Ver `docs/ADAPTADORES_PDF.md`. |
 | A02 PDF servidor | Bloqueada por especificacion/decision | Falta la seccion 9 de `ESPECIFICACION_v0_2.md` y sigue DP-022 sobre libreria/licencia. La impresion del navegador permanece disponible. |
 | A03 E2E Playwright | Pendiente de entorno aislado | No hay Playwright ni proyecto Supabase dedicado con usuarios demo. La lista manual esta en `TEST_REPORT.md`; no usar datos reales. |
 | A04 Busqueda global | No implementada | Requiere rama propia segun `PROMPTS CODEX/AGENTS.md`; la rama activa es `feature/a05-importacion-excel`. |
