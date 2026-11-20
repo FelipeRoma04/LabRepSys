@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { createCorrelationFetch } from './correlationFetch'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -22,5 +23,6 @@ export const supabase =
           persistSession: true,
           detectSessionInUrl: true,
         },
+      global: { fetch: createCorrelationFetch(fetch) },
       })
     : null
