@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import { matchClient } from '../../lib/clientMatching'
 import { fromExcelSerial, isSuspiciousDate } from '../../lib/format/date'
 import type { ColumnMapping, ImportIssue, ImportPreviewResult, ImportRowPreview } from './types'
 
@@ -137,20 +138,21 @@ export async function validateSampleRows(
     // 2. Resolver Cliente (NIT o Razón Social)
     let matchedClient: { id: string; nit: string | null; business_name: string } | undefined = undefined
     if (rawClientNit || rawClientName) {
-      matchedClient = activeClients.find((c) => {
-        if (rawClientNit && c.nit && c.nit.replace(/\D/g, '') === rawClientNit.replace(/\D/g, '')) {
-          return true
-        }
-        if (rawClientName && c.business_name.toLowerCase() === rawClientName.toLowerCase()) {
-          return true
-        }
-        return false
-      })
-      if (!matchedClient) {
+      const match = matchClient(activeClients, { nit: rawClientNit, name: rawClientName })
+      if (match.status === 'MATCHED') {
+        matchedClient = match.client
+      } else if (match.status === 'AMBIGUOUS') {
         issues.push({
           row: rowNumber,
           field: 'client_name',
-          message: `Cliente no encontrado (${rawClientNit || rawClientName}).`,
+          message: `"${rawClientNit || rawClientName}" coincide con varios clientes (${match.candidates.map((c) => c.business_name).join(', ')}). Use el NIT para distinguirlos.`,
+          severity: 'error',
+        })
+      } else {
+        issues.push({
+          row: rowNumber,
+          field: 'client_name',
+          message: `Cliente no encontrado (${rawClientNit || rawClientName}). Regístrelo primero en Clientes o corrija el nombre/NIT.`,
           severity: 'error',
         })
       }

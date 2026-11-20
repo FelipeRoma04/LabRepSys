@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import {
   assignRole, decidePendingDecision, listAdminProfiles, listAdminRoles,
   listAppSettings, listAssignedRoles, listPendingDecisions, removeRole,
-  saveAppSetting, setProfileActive,
+  saveAppSetting, setCounterFloor, setProfileActive,
   type AdminProfile, type AdminRole, type AppSetting, type AssignedRole, type PendingDecision,
 } from '../services/administration'
 
@@ -24,6 +24,8 @@ export function AdministrationPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [counterYear, setCounterYear] = useState(() => String(new Date().getFullYear()))
+  const [counterLast, setCounterLast] = useState('')
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -54,11 +56,11 @@ export function AdministrationPage() {
     return () => window.clearTimeout(timer)
   }, [reload])
 
-  const mutate = async (action: () => Promise<void>, success: string) => {
+  const mutate = async (action: () => Promise<void>, success: string | (() => string)) => {
     setSaving(true)
     setError(null)
     setNotice(null)
-    try { await action(); setNotice(success); await reload() }
+    try { await action(); setNotice(typeof success === 'function' ? success() : success); await reload() }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo guardar el cambio.') }
     finally { setSaving(false) }
   }
@@ -109,6 +111,23 @@ export function AdministrationPage() {
           <div><strong>{setting.key}</strong><p>{setting.description}</p><code>{JSON.stringify(setting.value)}</code></div>
           <button className="btn btn-secondary" disabled={saving} onClick={() => changeSetting(setting)} type="button">Editar JSON</button>
         </div>)}
+      </section>}
+
+      {isAdmin && <section className="admin-section">
+        <h2>Consecutivos de RSA</h2>
+        <p>Si ya se emitieron reportes a mano este año, indique el último número usado para que el sistema continúe sin repetir. Solo se puede aumentar.</p>
+        <form className="admin-setting" onSubmit={(event) => {
+          event.preventDefault()
+          const year = Number(counterYear)
+          const last = Number(counterLast)
+          let next = 0
+          void mutate(async () => { next = await setCounterFloor('RSA', year, last) },
+            () => `Consecutivo RSA ${year} ajustado: el próximo reporte será el número ${next}.`)
+        }}>
+          <label>Año<input inputMode="numeric" onChange={(event) => setCounterYear(event.target.value)} required value={counterYear} /></label>
+          <label>Último número de RSA ya usado<input inputMode="numeric" onChange={(event) => setCounterLast(event.target.value)} required value={counterLast} /></label>
+          <button className="btn btn-secondary" disabled={saving || !counterLast.trim()} type="submit">Ajustar consecutivo</button>
+        </form>
       </section>}
 
       {canDecide && <section className="admin-section">

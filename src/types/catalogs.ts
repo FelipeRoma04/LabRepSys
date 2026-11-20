@@ -106,10 +106,12 @@ export const catalogDefinitions: Record<CatalogTable, CatalogDefinition> = {
       { key: 'laboratory_type', label: 'Tipo', type: 'select', required: true, options: laboratoryTypeOptions },
       { key: 'nit', label: 'NIT' },
       { key: 'contact_email', label: 'Correo de contacto', type: 'email' },
+      { key: 'report_code', label: 'Sigla en el reporte (SA1, SA2…)' },
     ],
     columns: [
       { key: 'code', label: 'Código' },
       { key: 'name', label: 'Laboratorio' },
+      { key: 'report_code', label: 'Sigla RSA' },
       { key: 'laboratory_type', label: 'Tipo' },
       { key: 'nit', label: 'NIT' },
       { key: 'contact_email', label: 'Correo' },
