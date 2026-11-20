@@ -1,4 +1,5 @@
 -- p08: detección segura, resolución auditada y permisos de conciliación.
+\ir 000_helpers.psql
 begin;
 
 select plan(9);
@@ -104,6 +105,7 @@ values
   );
 
 select tests.set_role_context('ANALISTA', :'analyst_id'::uuid);
+set local role authenticated;
 
 select throws_ok(
   $$select public.resolve_reconciliation_issue(
@@ -151,6 +153,7 @@ select ok(
 );
 
 select tests.set_role_context('ANALISTA', :'analyst_id'::uuid);
+set local role authenticated;
 
 select throws_ok(
   $$select public.resolve_reconciliation_issue(

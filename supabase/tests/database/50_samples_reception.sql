@@ -1,4 +1,5 @@
 -- p04: Validaciones del código y seguridad de recepción.
+\ir 000_helpers.psql
 begin;
 
 select plan(9);
@@ -12,14 +13,11 @@ select ok(
 );
 
 select tests.create_test_user('RECEPCION') as reception_user \gset
-select set_config(
-  'request.jwt.claims',
-  json_build_object('sub', :'reception_user', 'role', 'authenticated')::text,
-  true
-);
-
 insert into public.clients (id, business_name, active)
 values ('50000000-0000-0000-0000-000000000001', 'Cliente prueba p04', true);
+
+select tests.set_role_context('RECEPCION', :'reception_user');
+set local role authenticated;
 
 select ok(
   'AG0346' ~ (select value #>> '{}' from public.app_settings where key = 'sample.code_pattern')
@@ -28,22 +26,30 @@ select ok(
 );
 
 select throws_ok(
-  $$
-    insert into public.samples (code, client_id)
-    values ('AG00106', '50000000-0000-0000-0000-000000000001')
-  $$,
+  $$select public.save_sample(null, jsonb_build_object(
+    'code', 'AG00106', 'client_id', '50000000-0000-0000-0000-000000000001',
+    'tests', '[]'::jsonb, 'containers', '[]'::jsonb, 'preservation', '{}'::jsonb,
+    'reception', jsonb_build_object('has_deviation', false),
+    'request_review', jsonb_build_object('capacity_verified', true, 'methods_verified', true)
+  ))$$,
   '22023',
   'El trigger de base de datos rechaza AG00106'
 );
 
-insert into public.samples (code, client_id, status)
-values ('AG0346', '50000000-0000-0000-0000-000000000001', 'RECEIVED');
+select public.save_sample(null, jsonb_build_object(
+  'code', 'AG0346', 'client_id', '50000000-0000-0000-0000-000000000001',
+  'tests', '[]'::jsonb, 'containers', '[]'::jsonb, 'preservation', '{}'::jsonb,
+  'reception', jsonb_build_object('has_deviation', false),
+  'request_review', jsonb_build_object('capacity_verified', true, 'methods_verified', true)
+)) as valid_sample_id \gset
 
 select throws_ok(
-  $$
-    insert into public.samples (code, client_id)
-    values ('AG0346', '50000000-0000-0000-0000-000000000001')
-  $$,
+  $$select public.save_sample(null, jsonb_build_object(
+    'code', 'AG0346', 'client_id', '50000000-0000-0000-0000-000000000001',
+    'tests', '[]'::jsonb, 'containers', '[]'::jsonb, 'preservation', '{}'::jsonb,
+    'reception', jsonb_build_object('has_deviation', false),
+    'request_review', jsonb_build_object('capacity_verified', true, 'methods_verified', true)
+  ))$$,
   '23505',
   'El código de muestra no se puede duplicar'
 );

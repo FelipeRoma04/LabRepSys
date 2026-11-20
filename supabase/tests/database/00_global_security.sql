@@ -1,4 +1,5 @@
 -- K02: Reglas globales de seguridad
+\ir 000_helpers.psql
 -- Req 1.1-1.5: RLS activo, sin políticas permisivas, search_path fijo, security_invoker, buckets privados
 
 begin;
@@ -12,7 +13,7 @@ select is(
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
-      and c.relkind = 'r'
+      and c.relkind in ('r', 'p')
       and not c.relrowsecurity
   ),
   0,
@@ -27,7 +28,10 @@ select is(
     from pg_policies
     where schemaname = 'public'
       and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL')
-      and (qual = 'true' or with_check = 'true')
+      and (
+        regexp_replace(coalesce(qual, ''), '[()[:space:]]', '', 'g') = 'true'
+        or regexp_replace(coalesce(with_check, ''), '[()[:space:]]', '', 'g') = 'true'
+      )
   ),
   0,
   'No deben existir políticas de escritura permisivas (USING/WITH CHECK true)'

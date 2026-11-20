@@ -1,3 +1,4 @@
+\ir 000_helpers.psql
 begin;
 
 select plan(11);
