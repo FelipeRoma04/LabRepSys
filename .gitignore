@@ -48,3 +48,13 @@ scripts/ops/*.log
 
 # Git worktrees locales de agentes
 .worktrees/
+
+# Datos reales de clientes y muestras (el repositorio es PÚBLICO)
+# Guárdalos en datos-reales/ (ignorada). Los catálogos técnicos sí se versionan.
+datos-reales/
+*.xlsx
+*.xlsm
+*.xls
+*.xlsb
+*.pdf
+# Excepción: fixtures de prueba anonimizados en texto (no PDF)
