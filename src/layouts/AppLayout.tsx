@@ -6,6 +6,8 @@ import { ErrorState } from '../components/ErrorState'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { HelpDrawer } from '../features/help/HelpDrawer'
 import { NotificationCenter } from '../components/NotificationCenter'
+import { GlobalSearch } from '../features/search/GlobalSearch'
+import '../features/search/search.css'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -89,6 +91,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             Menú
           </button>
           <p className="topbar-title">Laboratorio de Aguas y Alimentos</p>
+          <GlobalSearch />
           <div className="topbar-account">
             <NotificationCenter />
             <button
