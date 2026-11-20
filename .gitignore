@@ -21,6 +21,7 @@ lerna-debug.log*
 *.local
 .supabase/
 supabase/.temp/
+/supabase/seed-private/
 
 # Editors and operating systems
 .vscode/*

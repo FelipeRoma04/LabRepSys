@@ -1,7 +1,7 @@
 -- p04: Validaciones del código y seguridad de recepción.
 begin;
 
-select plan(9);
+select plan(10);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.samples'::regclass)
@@ -38,6 +38,12 @@ select throws_ok(
 
 insert into public.samples (code, client_id, status)
 values ('AG0346', '50000000-0000-0000-0000-000000000001', 'RECEIVED');
+
+select is(
+  (select is_demo from public.samples where code = 'AG0346'),
+  false,
+  'Las muestras operativas no quedan marcadas como DEMO por defecto'
+);
 
 select throws_ok(
   $$

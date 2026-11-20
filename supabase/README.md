@@ -79,6 +79,10 @@ La migración crea `samples`, `sample_receptions`, `sample_tests` y `sample_even
 
 `save_sample` exige confirmación explícita de sugerencias de cotización, verificación de capacidad y métodos, consulta al cliente cuando exista desviación, laboratorio asignado para cada ensayo subcontratado y motivo obligatorio para toda edición posterior. La RPC actualiza la muestra, recepción y ensayos en una transacción, registra valores anteriores/nuevos en `audit_logs` y agrega eventos al historial. Una muestra importada desde CSV queda `PENDING_REVIEW` hasta que se complete y guarde la revisión en el asistente. revisión en el asistente.
 
+## Semilla privada de demostración
+
+`seed-private/` está excluida de Git porque contiene nombres de clientes provenientes de archivos de trabajo. No agregues sus archivos al repositorio ni configures esta carpeta en `db.seed.sql_paths`. El seed privado solo se debe ejecutar manualmente contra una base local desechable, después de aplicar todas las migraciones y la semilla pública de catálogos; nunca lo ejecutes en producción. Requiere el UUID de un perfil activo con rol ADMIN o RECEPCION para conservar la auditoría. El seed deja la muestra en `PENDING_REVIEW`, marca `is_demo` y no crea un reporte RSA; aborta si `AG0346` ya existe como muestra operativa.
+
 ## Conciliación e inconsistencias (p08)
 
 La migración `20261019120000_reconciliation_workflow.sql` amplía la estructura creada en `20261017090000_reconciliation.sql`, separa las filas DEMO con `is_demo` y `demo_sample_code`, adjunta la fuente/página cuando existe y centraliza detección y resolución en `detect_reconciliation_issues` y `resolve_reconciliation_issue`. La detección es idempotente mientras el issue siga abierto; si reaparece tras resolverse, se registra como una incidencia nueva.
