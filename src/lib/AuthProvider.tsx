@@ -15,6 +15,7 @@ import {
 } from '../types/auth'
 import { supabase } from './supabase'
 import { AuthContext, type AuthContextValue } from './auth-context'
+import { GENERIC_LOGIN_ERROR, isNetworkError } from './authFlow'
 
 interface AuthProviderProps {
   children: ReactNode
@@ -158,7 +159,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setLoginError(error.message)
+      // Mensaje único: no revela si el correo existe ni detalles internos.
+      setLoginError(isNetworkError(error)
+        ? 'No se pudo conectar con el servidor. Intenta de nuevo.'
+        : GENERIC_LOGIN_ERROR)
       throw error
     }
   }, [])

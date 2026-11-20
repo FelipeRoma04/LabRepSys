@@ -9,6 +9,9 @@ import { navigationGroups } from './navigation'
 import { AuthProvider } from './lib/AuthProvider'
 import { isSupabaseConfigured, requiredSupabaseVariables } from './lib/supabase'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AuthConfirmPage } from './pages/AuthConfirmPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { SetPasswordPage } from './pages/SetPasswordPage'
 import { CatalogPage } from './pages/CatalogPage'
 import { DiagnosticsPage } from './pages/DiagnosticsPage'
 import { TemplateEditorPage } from './pages/TemplateEditorPage'
@@ -106,6 +109,9 @@ export default function App() {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/confirm" element={<AuthConfirmPage />} />
+          <Route path="/auth/set-password" element={<SetPasswordPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/access-denied" element={<AccessDeniedPage />} />
           <Route
             element={
