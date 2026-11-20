@@ -112,6 +112,17 @@ jobs:
             CREATE SCHEMA IF NOT EXISTS extensions;
             CREATE SCHEMA IF NOT EXISTS storage;
 
+            -- Roles que Supabase trae de fábrica. Sin ellos, los bloques que
+            -- hacen GRANT/REVOKE o CREATE POLICY ... TO authenticated fallan
+            -- completos y dejan tablas sin RLS.
+            DO \$\$
+            BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN BYPASSRLS; END IF;
+            END
+            \$\$;
+
             -- Stub mínimo de auth.users para las migraciones
             CREATE TABLE IF NOT EXISTS auth.users (
               id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
