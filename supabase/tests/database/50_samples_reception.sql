@@ -2,7 +2,7 @@
 \ir 000_helpers.psql
 begin;
 
-select plan(9);
+select plan(10);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.samples'::regclass)
@@ -42,6 +42,12 @@ select public.save_sample(null, jsonb_build_object(
   'reception', jsonb_build_object('has_deviation', false),
   'request_review', jsonb_build_object('capacity_verified', true, 'methods_verified', true)
 )) as valid_sample_id \gset
+
+select is(
+  (select is_demo from public.samples where code = 'AG0346'),
+  false,
+  'Las muestras operativas no quedan marcadas como DEMO por defecto'
+);
 
 select throws_ok(
   $$select public.save_sample(null, jsonb_build_object(
