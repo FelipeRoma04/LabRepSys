@@ -129,8 +129,11 @@ export function MigrationAssistantPage() {
   }, [])
 
   useEffect(() => {
-    if (tab === 'mapeo') void fetchMappings()
-    else void fetchCalidad()
+    const timer = window.setTimeout(() => {
+      if (tab === 'mapeo') void fetchMappings()
+      else void fetchCalidad()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [tab, fetchMappings, fetchCalidad])
 
   // ── Confirmar / rechazar mapeo ────────────────────────────────────────────────

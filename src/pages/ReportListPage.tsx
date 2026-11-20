@@ -121,7 +121,7 @@ export function ReportListPage({ statusFilter, title, description }: Props) {
         )}
 
         {/* Emitir */}
-        {r.status === 'APPROVED' && (isJTC || isAdmin) && (
+        {r.status === 'APPROVED' && isJTC && (
           <button className="btn btn-sm btn-primary" onClick={() => void handleIssue(r)} type="button">
             Emitir
           </button>
@@ -147,7 +147,7 @@ export function ReportListPage({ statusFilter, title, description }: Props) {
   return (
     <div>
       <PageHeader title={title} description={description}>
-        {(isAnalista || isAdmin) && (
+        {isAnalista && (
           <button className="btn btn-primary" onClick={() => navigate('/reportes/nuevo')} type="button">
             Nuevo borrador
           </button>

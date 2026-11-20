@@ -2,8 +2,8 @@
  * Interfaz pública para adaptadores de extracción de PDF de laboratorio.
  * A01 — Req: canHandle, extract, degradar a captura manual si no hay texto.
  *
- * Los adaptadores AGQ, Chemilab e IHA son STUBS — extracción automática pendiente.
- * El flujo degrada a pegado o digitación manual con el PDF visible.
+ * Adaptadores implementados: AGQ, Chemilab e IHA (ver docs/ADAPTADORES_PDF.md).
+ * Si ningún adaptador reconoce el PDF, el flujo degrada a captura manual con el PDF visible.
  * Sin OCR (DP-023): si el PDF no tiene texto, se ofrece captura manual.
  */
 
@@ -21,14 +21,22 @@ export interface PdfExtractedRow {
   lcmText?: string
   /** Método tal como aparece */
   methodText?: string
-  /** Fecha inicio análisis si existe */
+  /** Técnica tal como aparece */
+  techniqueText?: string
+  /** Marca del laboratorio junto al parámetro ("*", "*A", "(A) (*)"), sin interpretar */
+  marker?: string
+  /** Sección o grupo de la tabla (p. ej. "HAPs", "Metales") */
+  section?: string
+  /** Fecha inicio análisis, ISO YYYY-MM-DD (convertida desde el formato del laboratorio) */
   analysisStart?: string
-  /** Fecha fin análisis si existe */
+  /** Fecha fin análisis, ISO YYYY-MM-DD */
   analysisEnd?: string
   /** Página de origen en el PDF */
   sourcePage?: number
-  /** Observaciones o desviaciones del laboratorio */
-  observations?: string
+  /** Observaciones o desviaciones del laboratorio que aplican a esta fila */
+  observations?: string[]
+  /** Línea de datos original, para diagnóstico */
+  rawLine?: string
 }
 
 /** Resultado de la extracción */
@@ -46,6 +54,13 @@ export interface PdfExtractResult {
   detectedFormatVersion?: string
   /** Advertencias no críticas */
   warnings?: string[]
+  /**
+   * Datos del documento para cotejar con la muestra (fechas, tipo, referencia).
+   * NUNCA incluye datos de contacto del cliente (nombre, NIT, dirección, correo, teléfono).
+   */
+  documentInfo?: Record<string, string>
+  /** Observaciones del documento que no se pueden ligar a una fila */
+  documentObservations?: string[]
 }
 
 /**
@@ -82,7 +97,9 @@ export interface LabPdfAdapter {
 const adapterRegistry: LabPdfAdapter[] = []
 
 export function registerAdapter(adapter: LabPdfAdapter): void {
-  adapterRegistry.push(adapter)
+  const existing = adapterRegistry.findIndex((a) => a.id === adapter.id)
+  if (existing >= 0) adapterRegistry[existing] = adapter
+  else adapterRegistry.push(adapter)
 }
 
 export function findAdapter(textContent: string): LabPdfAdapter | null {
@@ -91,4 +108,50 @@ export function findAdapter(textContent: string): LabPdfAdapter | null {
 
 export function getAllAdapters(): readonly LabPdfAdapter[] {
   return adapterRegistry
+}
+
+/** Resultado de buscar adaptador y extraer */
+export interface AdapterExtraction {
+  adapter: LabPdfAdapter | null
+  result: PdfExtractResult
+}
+
+/**
+ * Busca el adaptador por contenido y extrae. Nunca lanza: cualquier error
+ * degrada a captura manual con una advertencia.
+ */
+export function extractWithAdapter(textContent: string): AdapterExtraction {
+  if (textContent.replace(/\s/g, '').length < 20) {
+    return {
+      adapter: null,
+      result: {
+        rows: [],
+        requiresManualCapture: true,
+        warnings: ['El PDF no tiene capa de texto (posiblemente escaneado). Sin OCR: capture manualmente con el PDF visible.'],
+      },
+    }
+  }
+  const adapter = findAdapter(textContent)
+  if (!adapter) {
+    return {
+      adapter: null,
+      result: {
+        rows: [],
+        requiresManualCapture: true,
+        warnings: ['Ningún adaptador reconoce el formato de este PDF. Capture manualmente con el PDF visible.'],
+      },
+    }
+  }
+  try {
+    return { adapter, result: adapter.extract(textContent) }
+  } catch (cause) {
+    return {
+      adapter,
+      result: {
+        rows: [],
+        requiresManualCapture: true,
+        warnings: [`El adaptador ${adapter.laboratoryName} falló al leer el PDF (${cause instanceof Error ? cause.message : 'error desconocido'}). Capture manualmente.`],
+      },
+    }
+  }
 }

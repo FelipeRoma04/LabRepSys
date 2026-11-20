@@ -10,6 +10,8 @@ import { StatusBadge } from '../components/StatusBadge'
 import { useAuth } from '../hooks/useAuth'
 import { formatResult } from '../lib/format'
 import { parseResult } from '../lib/parseResult'
+import { extractPdfText } from '../lib/pdfText'
+import { extractWithAdapter, type PdfExtractedRow, type PdfExtractResult } from '../lib/adapters'
 import { createStorageSignedUrl } from '../services/storage'
 import {
   confirmImportRow,
@@ -45,9 +47,23 @@ interface EditableRow {
   external_uncertainty: string
   external_lcm: string
   external_method: string
+  external_technique: string
+  /** Fechas ISO (YYYY-MM-DD) entregadas por el adaptador */
+  analysis_start: string
+  analysis_end: string
+  /** Página de origen, marca y observaciones del laboratorio (se guardan en validation_messages) */
+  notes: string[]
+  source_page: number | null
   mapped_test_id: string
   mapping_status: 'EXACT' | 'SUGGESTED' | 'UNMAPPED'
   confirmedByUser: boolean
+}
+
+interface PdfExtractionState {
+  adapterId: string | null
+  adapterName: string | null
+  formatVersion: string | null
+  result: PdfExtractResult
 }
 
 const emptyRow = (): EditableRow => ({
@@ -57,10 +73,48 @@ const emptyRow = (): EditableRow => ({
   external_uncertainty: '',
   external_lcm: '',
   external_method: '',
+  external_technique: '',
+  analysis_start: '',
+  analysis_end: '',
+  notes: [],
+  source_page: null,
   mapped_test_id: '',
   mapping_status: 'UNMAPPED',
   confirmedByUser: false,
 })
+
+const SOURCE_PAGE_NOTE = /^Página (\d+) del PDF$/
+
+/** Página de origen guardada en validation_messages de la fila importada */
+function sourcePageOf(messages: unknown): number | null {
+  if (!Array.isArray(messages)) return null
+  for (const message of messages) {
+    const match = typeof message === 'string' ? message.match(SOURCE_PAGE_NOTE) : null
+    if (match) return Number(match[1])
+  }
+  return null
+}
+
+function notesOf(messages: unknown): string[] {
+  return Array.isArray(messages) ? messages.filter((message): message is string => typeof message === 'string') : []
+}
+
+/**
+ * Fecha ISO del laboratorio → timestamptz explícito en hora de Colombia (UTC-5, sin horario de verano).
+ * Nunca se envía dd/mm/aaaa crudo: Postgres podría leerlo como mes/día.
+ */
+function isoDateToTimestamp(value: string): string | null {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00-05:00` : null
+}
+
+function extractedRowNotes(row: PdfExtractedRow): string[] {
+  return [
+    ...(row.sourcePage ? [`Página ${row.sourcePage} del PDF`] : []),
+    ...(row.marker ? [`Marca del laboratorio: ${row.marker}`] : []),
+    ...(row.section ? [`Sección del informe: ${row.section}`] : []),
+    ...(row.observations ?? []),
+  ]
+}
 
 function splitPasteLine(line: string, delimiter: string): string[] {
   const cells: string[] = []
@@ -141,9 +195,12 @@ function rowToDraft(row: EditableRow): ResultImportRowDraft {
     external_uncertainty: row.external_uncertainty || null,
     external_lcm: parsedLcm?.numericValue ?? null,
     external_method: row.external_method.trim() || null,
+    external_technique: row.external_technique.trim() || null,
+    analysis_start: isoDateToTimestamp(row.analysis_start),
+    analysis_end: isoDateToTimestamp(row.analysis_end),
     mapped_test_id: row.mapped_test_id || null,
     mapping_status: row.mapping_status,
-    validation_messages: [],
+    validation_messages: row.notes,
   }
 }
 
@@ -167,6 +224,8 @@ export function ResultsLoadPage() {
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [storedPdfUrl, setStoredPdfUrl] = useState<string | null>(null)
   const [duplicateImportId, setDuplicateImportId] = useState<string | null>(null)
+  const [extraction, setExtraction] = useState<PdfExtractionState | null>(null)
+  const [extracting, setExtracting] = useState(false)
   const [importId, setImportId] = useState<string | null>(null)
   const [results, setResults] = useState<Result[]>([])
   const [corrections, setCorrections] = useState<Record<string, ResultCorrection[]>>({})
@@ -299,6 +358,7 @@ export function ResultsLoadPage() {
     setNotice(null)
     setStoredPdfUrl(null)
     setDuplicateImportId(null)
+    setExtraction(null)
     setImportId(null)
     setRows([])
     setSelectedFile(null)
@@ -343,11 +403,61 @@ export function ResultsLoadPage() {
           }
         }
       } else {
-        setNotice('Los adaptadores AGQ, Chemilab e IHA son stubs: la extracción automática está pendiente. El original se conserva y se captura manualmente con el PDF visible.')
         setManualRows([emptyRow()])
+        await extractRowsFromPdf(file)
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo calcular el hash o verificar la idempotencia del archivo.')
+    }
+  }
+
+  /**
+   * Lee el texto del PDF y precarga filas candidatas con el adaptador que reconozca el formato.
+   * Nunca confirma filas ni rompe el flujo: ante cualquier problema degrada a captura manual.
+   */
+  const extractRowsFromPdf = async (file: File) => {
+    setExtracting(true)
+    try {
+      const { text } = await extractPdfText(await file.arrayBuffer())
+      if (fileInput.current?.files?.[0] !== file) return
+      const { adapter, result } = extractWithAdapter(text)
+      setExtraction({
+        adapterId: adapter?.id ?? null,
+        adapterName: adapter?.laboratoryName ?? null,
+        formatVersion: adapter?.formatVersion ?? null,
+        result,
+      })
+      if (result.rows.length) {
+        setManualRows(result.rows.map((row) => {
+          const match = matchTest(row.externalParameter)
+          return {
+            ...emptyRow(),
+            external_parameter: row.externalParameter,
+            external_unit: row.externalUnit ?? '',
+            external_result: row.externalResult,
+            external_uncertainty: row.uncertaintyText ?? '',
+            external_lcm: row.lcmText ?? '',
+            external_method: row.methodText ?? '',
+            external_technique: row.techniqueText ?? '',
+            analysis_start: row.analysisStart ?? '',
+            analysis_end: row.analysisEnd ?? '',
+            notes: extractedRowNotes(row),
+            source_page: row.sourcePage ?? null,
+            // Desde PDF nada sale confirmado ni exacto: el analista revisa cada correspondencia
+            mapped_test_id: match.id,
+            mapping_status: match.id ? 'SUGGESTED' : 'UNMAPPED',
+          }
+        }))
+        setNotice(`${adapter?.laboratoryName ?? 'Adaptador'}: ${result.rows.length} fila(s) leídas del PDF. Compare cada fila con el documento visible antes de guardar; ninguna queda confirmada.`)
+      } else {
+        setNotice('No se extrajeron filas automáticamente. El original se conserva; capture las filas manualmente con el PDF visible.')
+      }
+    } catch {
+      if (fileInput.current?.files?.[0] !== file) return
+      setExtraction(null)
+      setNotice('No se pudo leer el texto del PDF (archivo dañado, protegido o escaneado). El original se conserva; capture las filas manualmente con el PDF visible.')
+    } finally {
+      setExtracting(false)
     }
   }
 
@@ -360,6 +470,7 @@ export function ResultsLoadPage() {
     setFileHash(null)
     setPdfPreviewUrl(null)
     setStoredPdfUrl(null)
+    setExtraction(null)
     setManualRows([emptyRow()])
     setPasteGrid(null)
     setError(null)
@@ -417,9 +528,22 @@ export function ResultsLoadPage() {
         storage_path: uploadedStoragePath,
         file_name: sourceType === 'PDF' ? selectedFile?.name : null,
         file_hash: sourceType === 'PDF' ? fileHash : null,
-        adapter_code: null,
-        adapter_version: null,
-        raw_payload: sourceType === 'PASTE' ? { paste: pasteText } : null,
+        adapter_code: sourceType === 'PDF' ? extraction?.adapterId ?? null : null,
+        adapter_version: sourceType === 'PDF' ? extraction?.formatVersion ?? null : null,
+        raw_payload: sourceType === 'PASTE'
+          ? { paste: pasteText }
+          : sourceType === 'PDF' && extraction
+            ? {
+              // Sin datos de contacto del cliente: los adaptadores no los incluyen en documentInfo
+              adapter: extraction.adapterId,
+              detected_format_version: extraction.result.detectedFormatVersion ?? null,
+              warnings: extraction.result.warnings ?? [],
+              document_info: extraction.result.documentInfo ?? {},
+              document_observations: extraction.result.documentObservations ?? [],
+              unrecognized_lines: extraction.result.unrecognizedLines ?? [],
+              extracted_rows: extraction.result.rows.length,
+            }
+            : null,
       }, rowDrafts)
       importSaved = true
       setImportId(saved.importId)
@@ -468,7 +592,7 @@ export function ResultsLoadPage() {
       await confirmImportRow(row.id, targetTestId, {
         operator: parsed.type === 'numeric' ? parsed.operator ?? null : null,
         numeric_value: parsed.type === 'numeric' ? parsed.numericValue ?? null : null,
-        source_page: null,
+        source_page: sourcePageOf(row.validation_messages),
       })
       setRows((current) => current.map((item) =>
         item.id === row.id
@@ -570,6 +694,7 @@ export function ResultsLoadPage() {
 
   const rowColumns: DataTableColumn<ImportRowView>[] = [
     { key: 'row', header: 'Fila', render: (row) => row.row_number },
+    { key: 'page', header: 'Página PDF', render: (row) => sourcePageOf(row.validation_messages) ?? '—' },
     { key: 'parameter', header: 'Parámetro externo', render: (row) => row.external_parameter ?? '—' },
     { key: 'unit', header: 'Unidad recibida', render: (row) => row.external_unit ?? '—' },
     {
@@ -597,6 +722,16 @@ export function ResultsLoadPage() {
             {parsed.pendingConfirmation && <><br /><span className="fielddata-warning">{parsed.confirmationReason}</span></>}
           </span>
         )
+      },
+    },
+    {
+      key: 'notes',
+      header: 'Notas del laboratorio',
+      render: (row) => {
+        const notes = notesOf(row.validation_messages).filter((note) => !SOURCE_PAGE_NOTE.test(note))
+        return notes.length
+          ? <ul className="result-row-notes">{notes.map((note, index) => <li key={index}>{note}</li>)}</ul>
+          : '—'
       },
     },
     {
@@ -756,7 +891,7 @@ export function ResultsLoadPage() {
           {tab === 'pdf' && (
             <section className="load-section">
               <p className="load-note">
-                Se guarda el PDF original sin modificar con SHA-256. Los adaptadores AGQ, Chemilab e IHA aún no extraen datos; no hay OCR. Revise el documento visible y capture o pegue las filas manualmente.
+                Se guarda el PDF original sin modificar con SHA-256. Los informes de AGQ, Chemilab e IHA con capa de texto se leen automáticamente y precargan filas candidatas; ninguna queda confirmada. Sin OCR: si el PDF es escaneado o de otro formato, capture las filas manualmente con el documento visible.
               </p>
               <label className="file-upload-label">
                 Seleccionar PDF original
@@ -768,6 +903,46 @@ export function ResultsLoadPage() {
                 />
               </label>
               {selectedFile && <p>Archivo: {selectedFile.name} · {fileHash ? `SHA-256 ${fileHash}` : 'Calculando SHA-256…'}</p>}
+              {extracting && <LoadingState message="Leyendo el texto del PDF…" />}
+              {extraction && !duplicateImportId && (
+                <section className="result-pdf-extraction" aria-label="Lectura automática del PDF">
+                  <h2>Lectura automática</h2>
+                  <p>
+                    {extraction.adapterName
+                      ? <>Formato reconocido: <strong>{extraction.adapterName}</strong> · versión {extraction.result.detectedFormatVersion ?? extraction.formatVersion ?? '—'}</>
+                      : 'Ningún adaptador reconoció el formato.'}
+                    {' · '}{extraction.result.rows.length} fila(s) candidatas
+                  </p>
+                  {!!extraction.result.warnings?.length && (
+                    <div className="load-warning" role="status">
+                      <strong>Advertencias para revisar:</strong>
+                      <ul>{extraction.result.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>
+                    </div>
+                  )}
+                  {extraction.result.documentInfo && Object.keys(extraction.result.documentInfo).length > 0 && (
+                    <>
+                      <h3>Datos del informe (cotejar con la muestra)</h3>
+                      <dl className="result-pdf-document-info">
+                        {Object.entries(extraction.result.documentInfo).map(([label, value]) => (
+                          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                        ))}
+                      </dl>
+                    </>
+                  )}
+                  {!!extraction.result.documentObservations?.length && (
+                    <>
+                      <h3>Observaciones del laboratorio</h3>
+                      <ul>{extraction.result.documentObservations.map((note, index) => <li key={index}>{note}</li>)}</ul>
+                    </>
+                  )}
+                  {!!extraction.result.unrecognizedLines?.length && (
+                    <details>
+                      <summary>Líneas no reconocidas ({extraction.result.unrecognizedLines.length})</summary>
+                      <ul>{extraction.result.unrecognizedLines.map((line, index) => <li key={index}><code>{line}</code></li>)}</ul>
+                    </details>
+                  )}
+                </section>
+              )}
               {duplicateImportId && (
                 <div className="load-warning" role="status">
                   <strong>Archivo ya importado:</strong> se recuperarán las filas pendientes sin duplicar los resultados existentes.
@@ -886,12 +1061,24 @@ export function ResultsLoadPage() {
               <h2>Filas capturadas del PDF</h2>
               {manualRows.map((row, index) => (
                 <div className="result-manual-row" key={`pdf-${index}`}>
+                  {(row.source_page || row.notes.length > 0) && (
+                    <div className="result-row-origin">
+                      <strong>{row.source_page ? `Página ${row.source_page} del PDF` : 'Página no identificada'}</strong>
+                      {(row.analysis_start || row.analysis_end) && <span> · Análisis {row.analysis_start || '—'} a {row.analysis_end || '—'}</span>}
+                      {row.notes.filter((note) => !SOURCE_PAGE_NOTE.test(note)).length > 0 && (
+                        <ul className="result-row-notes">
+                          {row.notes.filter((note) => !SOURCE_PAGE_NOTE.test(note)).map((note, noteIndex) => <li key={noteIndex}>{note}</li>)}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                   <label>Parámetro externo<input onChange={(event) => updateManualRow(index, 'external_parameter', event.target.value)} value={row.external_parameter} /></label>
                   <label>Unidad recibida<input onChange={(event) => updateManualRow(index, 'external_unit', event.target.value)} value={row.external_unit} /></label>
                   <label>Resultado original<input onChange={(event) => updateManualRow(index, 'external_result', event.target.value)} value={row.external_result} /></label>
                   <label>Incertidumbre recibida<input onChange={(event) => updateManualRow(index, 'external_uncertainty', event.target.value)} value={row.external_uncertainty} /></label>
                   <label>LCM recibido<input onChange={(event) => updateManualRow(index, 'external_lcm', event.target.value)} value={row.external_lcm} /></label>
                   <label>Método recibido<input onChange={(event) => updateManualRow(index, 'external_method', event.target.value)} value={row.external_method} /></label>
+                  <label>Técnica recibida<input onChange={(event) => updateManualRow(index, 'external_technique', event.target.value)} value={row.external_technique} /></label>
                   <label>Ensayo SA
                     <select onChange={(event) => updateManualRow(index, 'mapped_test_id', event.target.value)} value={row.mapped_test_id}>
                       <option value="">Seleccione o deje sin mapear</option>

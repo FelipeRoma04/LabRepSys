@@ -9,7 +9,7 @@ export function ModulePage({ title }: ModulePageProps) {
   return (
     <>
       <PageHeader title={title} />
-      <EmptyState title="Módulo pendiente de implementación" />
+      <EmptyState title="No implementado en el MVP" description="Este módulo no tiene una definición funcional disponible en las instrucciones actuales." />
     </>
   )
 }

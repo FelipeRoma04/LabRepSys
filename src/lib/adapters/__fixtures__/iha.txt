@@ -1,0 +1,41 @@
+                                                                       REPORTE DE RESULTADOS DE LABORATORIO No 135654-1
+         Fecha de Emisión: Bogotá D.C., lunes, 8 de junio de 2026  #####                                                                                                       OP-R-24-V-14
+                            DATOS DEL CLIENTE                                                                       IDENTIFICACIÓN DE LA MUESTRA
+                                                                        MATRIZ:                                        AGUA
+                                                                        MUESTREO A CARGO DE:                           CLIENTE
+                                                                        PROCEDIMIENTO DE MUESTREO:                     N.E.
+                                                                        PLAN DE MUESTREO IHA:                          N.A.
+EMPRESA CLIENTEXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX                       MÉTODO Y TÉCNICA DE MUESTREO:                  N.E.
+DIRECCION CLIENTEXX                                                     SITIO DE MUESTREO:                             AG0346 - Salida 1
+CONTACTOXXXX                                                            DEPARTAMENTO:                                  N.E.
+000 000 0000                                                            MUNICIPIO:                                     N.E.
+correo@ejemplo.coXXXXXXXXXXXXXXX                                        TIPO DE MUESTREO:                              N.E.
+correo@ejemplo.coXXXXXXXXXXXX                                           EMPRESA GENERADORA:                            EMPRESA CLIENTEXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                                                                        HORA DE MUESTREO:                              N.E.
+                                                                        COORDENADAS:                                   N.R.
+                                                                        COTA                                           N.R.
+    Rango de Temperatura Ambiente Durante los Ensayos (°C): 20±1  Humedad Relativa Durante los Ensayos (%): 49±5                             Presión Atm 560mm Hg
+                  FECHA DE MUESTREO:                              29-may-26                          FECHA INICIO ANÁLISIS:                                  1-jun-26
+            FECHA DE RECEPCIÓN DE MUESTRAS:                       1-jun-26                        FECHA FINALIZACIÓN ANÁLISIS:                               7-jun-26
+          PARÁMETRO                  UNIDADES                 TÉCNICA ANALÍTICA                MÉTODO           LÍMITE DE CUANTIFICACIÓN      RESULTADO              INCERTIDUMBRE (%)
+DEMANDA BIOQUÍMICA DE OXÍGENO (A)                                                     SM 5210 B, SM 4500-O H. SM 2023,
+                                       mg O2/L       FOTOMETRÍA                                                          10,0                    <10                      9,64%
+(*)                                                                                   Edición 24
+OBSERVACIONES:
+-NOTA: El cliente autorizó la realización del análisis, aun cuando el tiempo transcurrido entre la toma y la recepción de la muestra superó el tiempo recomendado para el ensayo de DBO₅.
+- Este resultado corresponde unicamente a la muestra ensayada
+- Fecha de análisis inmediatos: 01 junio de 2026
+- La muestra se retendrá hasta el: 07 julio de 2026
+-(A) Análisis acreditado
+- (*): Parámetro de análisis inmediatos
+- (N.R.): No Reporta
+- (N.A.): No Aplica
+- (N.E): No Especifica
+                                                                            _______________________________________
+                                                                              FIRMANTE LABORATORIOXXXXXXXXX
+                                                                                     Director de Laboratorio
+                                                                                       Revisó y Aprobó
+                                                                                       FIN DEL REPORTE
+                                                PROHIBIDA LA REPRODUCCIÓN TOTAL O PARCIAL DE ESTE INFORME SIN LA AUTORIZACIÓN EXPRESA DEL LABORATORIO
+                         Acreditado ISO 17025:2017. Resolución de Acreditación IDEAM No. 1065 (09 Agosto 2023). Resolución No. 0055 (20 Enero 2025). Resolución 0173 (25 Febrero 2025). Resolución 0443 (20de Abril 2026)
+                                                                          Parámetros acreditados: Remitirse a oferta económica.

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { ReceptionPage } from './ReceptionPage'
 import { SamplesPage } from './SamplesPage'
+import { getAxeViolations } from './a11yTestUtils'
 
 const mocks = vi.hoisted(() => ({
   listClients: vi.fn(),
@@ -177,6 +178,12 @@ async function fillSampleTimingAndContinue(user: ReturnType<typeof userEvent.set
 }
 
 describe('recepción y búsqueda de muestras', () => {
+  it('no presenta violaciones axe en la lista de muestras', async () => {
+    const { container } = render(<main><MemoryRouter><SamplesPage /></MemoryRouter></main>)
+    await screen.findByRole('heading', { level: 1 })
+    expect(await getAxeViolations(container)).toEqual([])
+  })
+
   it('acepta AG0346 y rechaza AG00106 en el asistente', async () => {
     const user = await renderReception()
     await user.type(screen.getByLabelText('Código de muestra'), 'AG00106')

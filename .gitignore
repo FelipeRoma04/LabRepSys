@@ -45,3 +45,6 @@ e2e/.auth/
 
 # Scripts de ops — archivos temporales
 scripts/ops/*.log
+
+# Git worktrees locales de agentes
+.worktrees/

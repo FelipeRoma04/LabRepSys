@@ -8,20 +8,21 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   # ── 1. Lint, typecheck, test y build ──────────────────────────────────────
   build:
     name: Lint · Typecheck · Test · Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Descargar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Configurar Node.js LTS
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: npm
@@ -63,21 +64,26 @@ jobs:
   secrets-scan:
     name: Detección de secretos (Gitleaks)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Descargar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0  # Gitleaks necesita el historial completo
 
       - name: Ejecutar Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: 'false'
 
   # ── 3. Validar migraciones de Supabase ────────────────────────────────────
   validate-migrations:
     name: Validar migraciones SQL
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       postgres:
         image: postgres:16
@@ -94,7 +100,7 @@ jobs:
           - 5432:5432
     steps:
       - name: Descargar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Instalar cliente PostgreSQL
         run: sudo apt-get install -y postgresql-client
@@ -105,6 +111,17 @@ jobs:
             CREATE SCHEMA IF NOT EXISTS auth;
             CREATE SCHEMA IF NOT EXISTS extensions;
             CREATE SCHEMA IF NOT EXISTS storage;
+
+            -- Roles que Supabase trae de fábrica. Sin ellos, los bloques que
+            -- hacen GRANT/REVOKE o CREATE POLICY ... TO authenticated fallan
+            -- completos y dejan tablas sin RLS.
+            DO \$\$
+            BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN BYPASSRLS; END IF;
+            END
+            \$\$;
 
             -- Stub mínimo de auth.users para las migraciones
             CREATE TABLE IF NOT EXISTS auth.users (
@@ -153,3 +170,24 @@ jobs:
             exit 1
           fi
           echo "OK: Todas las tablas public tienen RLS activo."
+
+  lint-supabase-db:
+    name: Lint opcional de Supabase (base local)
+    if: ${{ vars.RUN_SUPABASE_DB_LINT == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Configurar Node.js LTS
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+
+      - name: Iniciar Supabase local (requiere Docker)
+        run: npx --yes supabase start
+
+      - name: Analizar SQL de la base local
+        run: npx --yes supabase db lint --fail-on error

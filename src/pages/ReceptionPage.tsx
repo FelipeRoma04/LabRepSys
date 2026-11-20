@@ -522,7 +522,7 @@ export function ReceptionPage() {
                 </label>
               ))}
               {payload.quote_id && !payload.quote_suggestions_confirmed && (
-                <p className="commercial-warning">La cotización seleccionada requiere confirmar sugerencias en el paso 2.</p>
+                <p className="commercial-warning" role="status">La cotización seleccionada requiere confirmar sugerencias en el paso 2.</p>
               )}
             </div>
           )}
@@ -548,7 +548,7 @@ export function ReceptionPage() {
                     </select>
                   </label>
                   {test.execution_type === 'SUBCONTRACTED' && test.assigned_laboratory_id && !sampleIsIssuableWithLab(test.test_id, test.assigned_laboratory_id) && (
-                    <p className="commercial-warning">Advertencia: no se encontró alcance acreditado vigente para este ensayo y laboratorio. La asignación queda registrada para revisión.</p>
+                    <p className="commercial-warning" role="status">Advertencia: no se encontró alcance acreditado vigente para este ensayo y laboratorio. La asignación queda registrada para revisión.</p>
                   )}
                 </section>
               ))}
@@ -594,7 +594,7 @@ export function ReceptionPage() {
               {editingId && <label>Motivo del cambio posterior a recepción
                 <textarea onChange={(event) => setReason(event.target.value)} required value={reason} />
               </label>}
-              {dateWarnings.map((warning) => <p className="commercial-warning" key={warning}>{warning}</p>)}
+              {dateWarnings.map((warning) => <p className="commercial-warning" key={warning} role="status">{warning}</p>)}
               <p className="catalog-form-note">Al guardar, se conserva una sugerencia normativa desde cotización que deberá confirmarse en la etapa correspondiente.</p>
               <button className="catalog-primary-button" disabled={saving} type="submit">{saving ? 'Guardando…' : editingId ? 'Guardar cambios auditados' : 'Guardar recepción'}</button>
             </div>

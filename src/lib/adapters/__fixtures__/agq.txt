@@ -1,0 +1,208 @@
+                                                                   INFORME DE ENSAYO
+            Nº de Referencia:    A-26/095066                                Registrada en:        AGQ Colombia                       Cliente (^):  EMPRESA CLIENTEXXXXXX
+            Análisis:            CO01-00029269-13                           Centro Análisis:      AGQ Colombia                       Domicilio     DIRECCION CLIENTEXXXXXXXXXXX
+                                                                                                                                     (^):          11001
+            Tipo Muestra:        AGUA RESIDUAL                              Fecha Recepción:      04/06/2026                         Contrato:     CONTRATOXXXXXXX
+            Fecha Inicio:        04/06/2026                                 Fecha Fin:            09/07/2026                         Cliente 3º(^):----
+            Descripción(^):      Salida 1
+            Fecha Muestreo:          29/05/2026                      Muestreado por:           *Cliente (^)
+                                                                                                                                      Este:
+                                                                                                                                      Norte:
+        A continuación se exponen el Informe de Ensayo y Anexo Técnico asociados a la muestra, en los cuales se pueden consultar toda la información
+        relacionada con los ensayos realizados.
+          Los resultados reflejados en el presente informe se refieren únicamente a la muestra tal como es recibida en el laboratorio y sometida a ensayo. Queda
+          prohibida la reproducción parcial de este informe sin la aprobación por escrito del laboratorio. AGQ no se hace responsable de la información
+          proporcionada por el cliente, tanto la asociada a la toma de muestras si la realizase él como a otros datos descriptivos, marcados con (^) y que se
+          encuentran fuera de nuestro alcance de Acreditación.
+          FIRMANTE UNOXXXXXXXXX                 FIRMANTE DOSXXXXXXXXXXXXX
+          XXXXXX
+          FECHA EMISIÓN: 10/07/2026
+          OBSERVACIONES (*):
+           Toda desviación a los métodos debe ocurrir solo si están documentadas, justificadas y/o autorizadas por el cliente. El cliente autoriza el ingreso
+          debido a la novedad de envases BTEX
+Emitido por:AGQ COLOMBIA S.A.S.                                                                                                                                                             1/6
+            Calle 153A 7H-72 Bogota. Cundinamarca. Colombia                        T: (+57)0000000               correo@ejemplo.coXXXXXXXXXXX                        agqlabs.com
+
+                                                                   INFORME DE ENSAYO
+            Nº de Referencia:    A-26/095066                                                                                  Tipo Muestra: AGUA RESIDUAL
+            Descripción(^):       Salida 1                                                                                    Fecha Fin:       09/07/2026
+                                                                                   RESULTADOS ANALITICOS
+              Parámetro                                                     Resultado                   Unidades           Incert             CMA
+              Parámetros Físico-Químicos
+              Aceites y Grasas                                                 < 4,000                      mg/L            ±6,72%                                                    -
+              Color Real a 436 nm                                                < 2                        m-1              ±12%                                                     -
+              Color Real a 525 nm                                                < 2                        m-1              ±12%                                                     -
+              Color Real a 620 nm                                                < 2                        m-1              ±12%                                                     -
+              SAAM                                                             < 0,200                      mg/L            ±8,62%                                                    -
+              Hidrocarburos
+              Hidrocarburos                                                  < 4,000000                     mg/L            ±6,72%                                                    -
+              HAPs
+              Acenafteno                                                       < 0,040                      μg/L            ±17,1%                                                    -
+              Acenaftileno                                                     < 0,040                      μg/L            ±18,3%                                                    -
+              Antraceno                                                        < 0,040                      μg/L            ±16,8%                                                    -
+              Benzo (a) antraceno                                              < 0,040                      μg/L            ±19,5%                                                    -
+              Benzo (a) pireno                                                 < 0,040                      μg/L             ±17%                                                     -
+              Benzo (b) fluoranteno                                            < 0,040                      μg/L            ±18,8%                                                    -
+              Benzo (g,h,i) perileno                                           < 0,040                      μg/L            ±21,5%                                                    -
+              Benzo (k) fluoranteno                                            < 0,040                      μg/L            ±16,4%                                                    -
+              Criseno                                                          < 0,040                      μg/L            ±17,8%                                                    -
+              Dibenzo (a,h) antraceno                                          < 0,040                      μg/L             ±17%                                                     -
+              Fenantreno                                                       < 0,040                      μg/L            ±19,2%                                                    -
+              Fluoranteno                                                      < 0,040                      μg/L            ±14,7%                                                    -
+              Fluoreno                                                         < 0,040                      μg/L             ±6,6%                                                    -
+              Indeno (1,2,3-cd) pireno                                         < 0,040                      μg/L            ±21,1%                                                    -
+              Naftaleno                                                        < 0,040                      μg/L            ±10,4%                                                    -
+              Pireno                                                           < 0,040                      μg/L            ±14,5%                                                    -
+          *   Suma HAPs                                                         < 0,04                      μg/L                -                                                     -
+              Compuestos Fenólicos
+              Fenoles                                                           0,170                       mg/L            ±12,6%                                                    -
+              BTEX
+              Benceno                                                           < 10,0                      μg/L             ±4,7%                                                    -
+              Etilbenceno                                                       < 10,0                      μg/L             ±7,8%                                                    -
+              m,p-Xileno                                                        < 10,0                      μg/L             ±5,5%                                                    -
+              o-xileno                                                          < 10,0                      μg/L             ±8,3%                                                    -
+          *   Suma BTEX                                                         < 10,0                      μg/L            ±14,4%                                                    -
+              Tolueno                                                           < 10,0                      μg/L             ±6,9%                                                    -
+              Xilenos                                                           < 10,0                      μg/L            ±18,3%                                                    -
+              Xilenos                                                           < 10,0                      μg/L            ±13,4%                                                    -
+              Metales
+          *A Arsénico                                                           < 0,00                      mg/L                -                                                     -
+          *A Cadmio                                                             < 0,00                      mg/L                -                                                     -
+          *A Cobre                                                               0,00                       mg/L                -                                                     -
+          *A Cromo                                                               0,00                       mg/L                -                                                     -
+          *A Mercurio                                                            0,00                       mg/L                -                                                     -
+          *A Níquel                                                             < 0,00                      mg/L                -                                                     -
+Emitido por:AGQ COLOMBIA S.A.S.                                                                                                                                                             2/6
+            Calle 153A 7H-72 Bogota. Cundinamarca. Colombia                        T: (+57)0000000               correo@ejemplo.coXXXXXXXXXXX                        agqlabs.com
+
+                                                                   INFORME DE ENSAYO
+            Nº de Referencia:    A-26/095066                                                                                  Tipo Muestra: AGUA RESIDUAL
+            Descripción(^):       Salida 1                                                                                    Fecha Fin:       09/07/2026
+              Parámetro                                                     Resultado                   Unidades           Incert             CMA
+              Metales
+          *A Plomo                                                              < 0,00                      mg/L                -                                                     -
+          *A Zinc                                                               < 0,09                      mg/L                -                                                     -
+          Nota. A: Ensayo subcontratado y acreditado. N: Ensayo subcontratado y no acreditado. RE: Recuento en placa estimado. Los resultados emitidos, no
+          han sido corregidos con valores de recuperación. Las incertidumbres de los parámetros acreditados están calculadas y a disposición del cliente. La
+          Incertidumbre aplicada al resultado no aplica para valores menores al Límite de Cuantificación (LC). La Incert Exp (U) ha sido reportada con un Factor
+          de Cobertura k= 2, para un nivel de confianza aprox del 95%.
+          (*) Parámetro No Acreditado por IDEAM
+Emitido por:AGQ COLOMBIA S.A.S.                                                                                                                                                             3/6
+            Calle 153A 7H-72 Bogota. Cundinamarca. Colombia                        T: (+57)0000000               correo@ejemplo.coXXXXXXXXXXX                        agqlabs.com
+
+                                                                   INFORME DE ENSAYO
+            Nº de Referencia:    A-26/095066                                                                                  Tipo Muestra: AGUA RESIDUAL
+            Descripción(^):       Salida 1                                                                                    Fecha Fin:       09/07/2026
+                                                                                         ANEXO TECNICO
+              Parámetro                                    PNT                          Técnica                    Ref. Norma.                  Lim Cuantif/ Detec (#)
+              Parámetros Físico-Químicos
+              Aceites y Grasas                             SM 5520 C GyA                FTIR                                                    4,000 mg/L
+              Color Real a 436 nm                          ISO7887 2011 MetB            UV-VIS                                                  2 m-1
+                                                           Color Real Múltiples
+                                                           longitudes de onda en
+                                                           Aguas
+              Color Real a 525 nm                          ISO7887 2011 MetB            UV-VIS                                                  2 m-1
+                                                           Color Real Múltiples
+                                                           longitudes de onda en
+                                                           Aguas
+              Color Real a 620 nm                          ISO7887 2011 MetB            UV-VIS                                                  2 m-1
+                                                           Color Real Múltiples
+                                                           longitudes de onda en
+                                                           Aguas
+              SAAM                                         SM 5540 C SAAM en            UV-VIS                                                  0,200 mg/L
+                                                           Aguas por UV-VIS
+              Hidrocarburos
+              Hidrocarburos                                SM 5520 C,F                  FTIR                                                    4,000000 mg/L
+                                                           Hidrocarburos en
+                                                           aguas
+              HAPs
+              Acenafteno                                   EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Acenaftileno                                 EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Antraceno                                    EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Benzo (a) antraceno                          EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Benzo (a) pireno                             EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Benzo (b) fluoranteno                        EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Benzo (g,h,i) perileno                       EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Benzo (k) fluoranteno                        EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Criseno                                      EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Dibenzo (a,h) antraceno                      EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Fenantreno                                   EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Fluoranteno                                  EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Fluoreno                                     EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Indeno (1,2,3-cd) pireno                     EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Naftaleno                                    EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+              Pireno                                       EPA8270E Rev6 2018           GC/MS                                                   0,040 μg/L
+                                                           HAPs en Aguas
+          *   Suma HAPs                                    EPA8270E Rev6 2018           GC/MS                                                   0,04 μg/L
+                                                           HAPs en Aguas
+              Compuestos Fenólicos
+              Fenoles                                      SM 5530B,D Fenoles           UV-VIS                                                  0,100 mg/L
+                                                           Fotométrico Directo
+                                                           SM 5530B,C Mod Ext
+                                                           Cloroformo en aguas
+Emitido por:AGQ COLOMBIA S.A.S.                                                                                                                                                             4/6
+            Calle 153A 7H-72 Bogota. Cundinamarca. Colombia                        T: (+57)0000000               correo@ejemplo.coXXXXXXXXXXX                        agqlabs.com
+
+                                                                   INFORME DE ENSAYO
+            Nº de Referencia:    A-26/095066                                                                                  Tipo Muestra: AGUA RESIDUAL
+            Descripción(^):       Salida 1                                                                                    Fecha Fin:       09/07/2026
+              Parámetro                                    PNT                          Técnica                    Ref. Norma.                  Lim Cuantif/ Detec (#)
+              BTEX
+              Benceno                                      EPA 8260 D Suma BTEX         P&T-GC/MS                                               10,0 μg/L
+                                                           en Aguas
+              Etilbenceno                                  EPA 8260 D Suma BTEX         P&T-GC/MS                                               10,0 μg/L
+                                                           en Aguas
+              m,p-Xileno                                   EPA 8260 D Suma BTEX         P&T-GC/MS                                               10,0 μg/L
+                                                           en Aguas
+              o-xileno                                     EPA 8260 D Suma BTEX         P&T-GC/MS                                               10,0 μg/L
+                                                           en Aguas
+          *   Suma BTEX                                    EPA 8260 D Suma BTEX         P&T-GC/MS                                               10,0 μg/L
+                                                           en Aguas
+              Tolueno                                      EPA 8260 D Suma BTEX         P&T-GC/MS                                               10,0 μg/L
+                                                           en Aguas
+              Xilenos                                      EPA 8260 D Suma BTEX         P&T-GC/MS                                               10,0 μg/L
+                                                           en Aguas
+              Xilenos                                      EPA 8260 D Suma BTEX         P&T-GC/MS                                               10,0 μg/L
+                                                           en Aguas
+              Metales
+          *A Arsénico                                      Met Digeridos por ICP        Subcontrat                                              0,00 mg/L
+                                                           -MS Subc en aguas
+          *A Cadmio                                        Met Digeridos por ICP        Subcontrat                                              0,00 mg/L
+                                                           -MS Subc en aguas
+          *A Cobre                                         Met Digeridos por ICP        Subcontrat                                              0,00 mg/L
+                                                           -MS Subc en aguas
+          *A Cromo                                         Met Digeridos por ICP        Subcontrat                                              0,00 mg/L
+                                                           -MS Subc en aguas
+          *A Mercurio                                      Met Digeridos por ICP        Subcontrat                                              0,00 mg/L
+                                                           -MS Subc en aguas
+          *A Níquel                                        Met Digeridos por ICP        Subcontrat                                              0,00 mg/L
+                                                           -MS Subc en aguas
+          *A Plomo                                         Met Digeridos por ICP        Subcontrat                                              0,00 mg/L
+                                                           -MS Subc en aguas
+          *A Zinc                                          Met Digeridos por ICP        Subcontrat                                              0,09 mg/L
+                                                           -MS Subc en aguas
+Emitido por:AGQ COLOMBIA S.A.S.                                                                                                                                                             5/6
+            Calle 153A 7H-72 Bogota. Cundinamarca. Colombia                        T: (+57)0000000               correo@ejemplo.coXXXXXXXXXXX                        agqlabs.com
+
+                                                                   INFORME DE ENSAYO
+            Nº de Referencia:    A-26/095066                                                                                  Tipo Muestra: AGUA RESIDUAL
+            Descripción(^):       Salida 1                                                                                    Fecha Fin:       09/07/2026
+          Los resultados emitidos han sido aprobados por Profesional AprobadorXXXXXX, Profesional: Química, Matricula: PQ-00000. Si desea calcular la
+          incertidumbre realice la siguiente operación: (% incertidumbre del resultado/100 * resultado obtenido)
+Emitido por:AGQ COLOMBIA S.A.S.                                                                                                                                                             6/6
+            Calle 153A 7H-72 Bogota. Cundinamarca. Colombia                        T: (+57)0000000               correo@ejemplo.coXXXXXXXXXXX                        agqlabs.com
