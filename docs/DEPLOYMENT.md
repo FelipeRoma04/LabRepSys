@@ -142,6 +142,23 @@ El workflow `ci.yml` se ejecuta en cada Pull Request y push a `main`:
 > npm audit --audit-level=high
 > ```
 
+### Lint opcional de Supabase en CI
+
+El job `lint-supabase-db` se ejecuta solo cuando la variable de repositorio
+`RUN_SUPABASE_DB_LINT` se configura con el valor `true` en **Settings > Secrets and
+variables > Actions > Variables**. El job inicia Supabase local con `supabase start`
+y ejecuta `supabase db lint --fail-on error`. Requiere Docker disponible en el runner
+y un proyecto Supabase local funcional.
+
+El job no inicia sesion ni enlaza un proyecto remoto: el lint se dirige a la base
+local. No agregues `--remote` ni credenciales de produccion a este job.
+
+Dependabot revisa semanalmente npm y GitHub Actions, agrupa actualizaciones
+minor/patch y limita a cinco PRs abiertos por ecosistema. Las acciones de CI y Pages
+estan fijadas a commits completos verificados con comentarios que indican su version.
+Los permisos del token se limitan por job: lectura para CI/build y solo `pages: write`
+e `id-token: write` para publicar en Pages.
+
 ---
 
 ## Despliegue local (desarrollo)
