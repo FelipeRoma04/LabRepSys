@@ -1,36 +1,26 @@
 /**
  * Vista imprimible del RSA — /reportes/:id/imprimir
- * p12: borrador desde datos vivos (marca BORRADOR); emitido desde snapshot.
- * CSS de impresión: repetir encabezado de tabla, evitar corte de filas.
+ * - Emitido: se imprime SOLO desde el snapshot congelado al emitir.
+ * - Borrador: datos vivos con marca BORRADOR, problemas del modelo y decisiones pendientes
+ *   (estos avisos no se imprimen).
+ * El contenido sale de buildReportModel (src/lib/report): sin convertir ni redondear.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { LoadingState } from '../components/LoadingState'
 import { ErrorState } from '../components/ErrorState'
-import { getFinalReportPdfUrl, getReport, getSnapshot, listReportFiles, uploadFinalReportPdf, type ReportFileRow } from '../services/reports'
-import { getReportComposition } from '../services/reportBuilder'
-import { formatDateTime } from '../lib/format'
-import type { Report } from '../types/reports'
+import { RsaSheet } from '../features/rsa/RsaSheet'
 import { useAuth } from '../hooks/useAuth'
-
-interface SnapshotData {
-  code?: string
-  issued_at?: string
-  client?: { business_name?: string } | null
-  contact?: { name?: string } | null
-  samples?: Array<Record<string, unknown>>
-  results?: Array<Record<string, unknown>>
-  regulations?: Array<Record<string, unknown>>
-}
+import { buildReportModel, canIssueReport, REPORT_PENDING_DECISIONS, toReportModelInput } from '../lib/report'
+import { loadReportPrintData, type ReportPrintData } from '../services/reportPrint'
+import { getFinalReportPdfUrl, listReportFiles, uploadFinalReportPdf, type ReportFileRow } from '../services/reports'
 
 export function ReportPrintPage() {
   const { id } = useParams<{ id: string }>()
-  const [report,   setReport]   = useState<Report | null>(null)
-  const [snapshot, setSnapshot] = useState<SnapshotData | null>(null)
-  const [composition, setComposition] = useState<Awaited<ReturnType<typeof getReportComposition>> | null>(null)
+  const [data, setData] = useState<ReportPrintData | null>(null)
   const [files, setFiles] = useState<ReportFileRow[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [error,    setError]    = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [fileMessage, setFileMessage] = useState<string | null>(null)
   const [busyFile, setBusyFile] = useState(false)
   const { roles } = useAuth()
@@ -40,18 +30,20 @@ export function ReportPrintPage() {
     if (!id) return
     const timer = window.setTimeout(() => {
       setLoading(true)
-      Promise.all([getReport(id), getSnapshot(id), getReportComposition(id), listReportFiles(id)])
-        .then(([r, s, c, reportFiles]) => {
-          setReport(r)
-          setSnapshot(s?.snapshot_data as SnapshotData ?? null)
-          setComposition(c)
+      Promise.all([loadReportPrintData(id), listReportFiles(id)])
+        .then(([printData, reportFiles]) => {
+          setData(printData)
           setFiles(reportFiles)
         })
-        .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Error al cargar.'))
+        .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Error al cargar el reporte.'))
         .finally(() => setLoading(false))
     }, 0)
     return () => window.clearTimeout(timer)
   }, [id])
+
+  const model = useMemo(() => data
+    ? buildReportModel(toReportModelInput(data.records, { draftDate: data.report.updated_at }))
+    : null, [data])
 
   const uploadFinalPdf = async (file?: File) => {
     if (!id || !file) return
@@ -78,27 +70,14 @@ export function ReportPrintPage() {
   }
 
   if (loading) return <LoadingState message="Cargando reporte…" />
-  if (error || !report) return <ErrorState title="Error" message={error ?? 'Reporte no encontrado.'} />
+  if (error || !data || !model) return <ErrorState title="Error" message={error ?? 'Reporte no encontrado.'} />
 
-  const isIssued   = report.status === 'ISSUED'
-  const isDraft    = report.status !== 'ISSUED'
-  // Emitido: solo desde snapshot; borrador: datos vivos con marca de agua
-  const displayCode = isIssued ? (snapshot?.code ?? report.code ?? '—') : '(Borrador)'
-  const displayDate = isIssued
-    ? formatDateTime(snapshot?.issued_at ?? report.issued_at ?? '', {}, false)
-    : formatDateTime(report.updated_at, {}, false)
-  const sampleRows = isIssued
-    ? snapshot?.samples ?? []
-    : (composition?.samples ?? []).flatMap((row) => row.sample ? [row.sample as unknown as Record<string, unknown>] : [])
-  const resultRows = isIssued
-    ? snapshot?.results ?? []
-    : (composition?.results ?? []).flatMap((row) => row.result ? [row.result as unknown as Record<string, unknown>] : [])
-  const firstSample = sampleRows[0]
-  const sampleClient = firstSample?.client as { business_name?: string } | null | undefined
+  const isIssued = data.report.status === 'ISSUED'
+  const blocking = model.issues.filter((issue) => issue.severity === 'BLOCKING')
+  const warnings = model.issues.filter((issue) => issue.severity === 'WARNING')
 
   return (
     <div className="print-container">
-      {/* Controles de pantalla — ocultos al imprimir */}
       <div className="print-controls no-print">
         <button className="btn btn-primary" onClick={() => window.print()} type="button">
           Imprimir / Guardar PDF
@@ -106,11 +85,12 @@ export function ReportPrintPage() {
         <button className="btn btn-secondary" onClick={() => window.history.back()} type="button">
           Volver
         </button>
-        {isDraft && (
+        {!isIssued && (
           <p className="print-disclaimer" role="alert">
-            Vista de borrador — los datos pueden cambiar hasta la emisión.
+            Vista de borrador: los datos pueden cambiar hasta la emisión.
           </p>
         )}
+        {isIssued && <p className="print-disclaimer">Reporte emitido: contenido tomado del snapshot congelado al emitir.</p>}
         {isIssued && canRegisterPdf && <label className="no-print print-file-upload">
           Registrar PDF final
           <input accept="application/pdf,.pdf" disabled={busyFile} onChange={(event) => { void uploadFinalPdf(event.currentTarget.files?.[0]); event.currentTarget.value = '' }} type="file" />
@@ -122,109 +102,28 @@ export function ReportPrintPage() {
         </div>)}
       </div>
 
-      {/* Hoja del reporte */}
-      <article className="rsa-sheet" aria-label={`Reporte ${displayCode}`}>
-        {/* Marca de agua BORRADOR */}
-        {isDraft && <div className="watermark" aria-hidden="true">BORRADOR</div>}
-
-        {/* Encabezado */}
-        <header className="rsa-header">
-          <div className="rsa-header-org">
-            <h1>Grupo Sierra Alta S.A.S.</h1>
-            <p>Laboratorio de Análisis Ambiental</p>
-          </div>
-          <div className="rsa-header-meta">
-            <p><strong>RSA N.°</strong> {displayCode}</p>
-            <p><strong>Fecha de emisión:</strong> {displayDate}</p>
-            <p><strong>Versión:</strong> {report.version}</p>
-          </div>
-        </header>
-
-        {/* Información de la muestra — pendiente de datos reales (p03/p04) */}
-        <section className="rsa-client-info" aria-label="Información del cliente">
-          <table className="rsa-info-table"><caption className="visually-hidden">Información del cliente</caption>
-            <tbody>
-              <tr><th scope="row">Cliente</th><td>{isIssued ? snapshot?.client?.business_name ?? 'No incluido en el snapshot' : sampleClient?.business_name ?? 'Pendiente de selección'}</td></tr>
-              <tr><th scope="row">Contacto</th><td>{isIssued ? snapshot?.contact?.name ?? 'No incluido en el snapshot' : report.contact_id ?? '—'}</td></tr>
-            </tbody>
-          </table>
+      {!isIssued && (
+        <section className="rsa-report-issues no-print" aria-label="Revisión antes de emitir">
+          <h2>{canIssueReport(model) ? 'Sin problemas que bloqueen la emisión' : `${blocking.length} problema(s) impiden emitir`}</h2>
+          {blocking.length > 0 && <ul>{blocking.map((issue, index) => <li key={`b-${index}`}><strong>Bloquea:</strong> {issue.message}</li>)}</ul>}
+          {warnings.length > 0 && (
+            <details>
+              <summary>{warnings.length} advertencia(s)</summary>
+              <ul>{warnings.map((issue, index) => <li key={`w-${index}`}>{issue.message}</li>)}</ul>
+            </details>
+          )}
+          <details>
+            <summary>Decisiones pendientes que afectan este reporte ({REPORT_PENDING_DECISIONS.length})</summary>
+            <ul>
+              {REPORT_PENDING_DECISIONS.map((decision) => (
+                <li key={decision.code}><strong>{decision.code} · {decision.title}:</strong> {decision.currentBehavior}</li>
+              ))}
+            </ul>
+          </details>
         </section>
+      )}
 
-        <section className="rsa-samples-section" aria-label="Muestras del reporte">
-          <h2>Muestras</h2>
-          {sampleRows.length ? <table className="rsa-info-table"><thead><tr><th>Código</th><th>Punto</th><th>Matriz</th><th>Muestreo</th><th>Recepción</th></tr></thead><tbody>
-            {sampleRows.map((sample, index) => {
-              const matrix = sample.matrix as { name?: string } | null | undefined
-              return <tr key={String(sample.id ?? index)}><td>{String(sample.code ?? '—')}</td><td>{String(sample.sampling_point ?? '—')}</td><td>{matrix?.name ?? '—'}</td><td>{sample.sampled_at ? formatDateTime(String(sample.sampled_at), {}, false) : '—'}</td><td>{sample.received_at ? formatDateTime(String(sample.received_at), {}, false) : '—'}</td></tr>
-            })}
-          </tbody></table> : <p>No hay muestras incluidas.</p>}
-        </section>
-
-        {/* Tabla de resultados */}
-        <section className="rsa-results-section" aria-label="Resultados de análisis">
-          <h2>Resultados de análisis</h2>
-          <div aria-label="Resultados de análisis" className="report-table-scroll" role="region" tabIndex={0}><table className="rsa-results-table"><caption className="visually-hidden">Resultados de análisis</caption>
-            <thead>
-              <tr>
-                <th scope="col">Ítem</th>
-                <th scope="col">Ensayo / Parámetro</th>
-                <th scope="col">Acreditación</th>
-                <th scope="col">Método</th>
-                <th scope="col">LCM</th>
-                <th scope="col">Resultado</th>
-                <th scope="col">Unidad</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Datos vivos o del snapshot */}
-              {resultRows.length > 0
-                ? resultRows.map((res, i) => {
-                  const test = res.test as { code?: string; parameter_name?: string } | null | undefined
-                  return (
-                  <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>{test?.code ?? String(res.test_id ?? '—')} · {test?.parameter_name ?? ''}</td>
-                    <td>{String(res.accreditation_type ?? '—')}</td>
-                    <td>{String(res.method_text ?? '—')}</td>
-                    <td>{String(res.lcm ?? '—')}</td>
-                    <td>{String(res.original_text ?? res.reported_text ?? '—')}</td>
-                    <td>{String(res.unit ?? '—')}</td>
-                  </tr>
-                  )
-                })
-                : (
-                  <tr>
-                    <td colSpan={7} className="table-empty">
-                      {isIssued ? 'Sin resultados en el snapshot.' : 'No hay resultados incluidos.'}
-                    </td>
-                  </tr>
-                )
-              }
-            </tbody>
-          </table></div>
-        </section>
-
-        {/* Notas de acreditación IDEAM — texto desde configuración de plantilla */}
-        <section className="rsa-declarations" aria-label="Declaraciones">
-          <p className="rsa-declaration-placeholder">
-            [Declaración de acreditación — configurable en la plantilla]
-          </p>
-          <p className="rsa-declaration-placeholder">
-            Los resultados se refieren únicamente a las muestras analizadas.
-          </p>
-        </section>
-
-        {/* Firma */}
-        <footer className="rsa-footer">
-          <div className="rsa-signature">
-            <div className="signature-line" aria-label="Firma del responsable" />
-            <p>Jefa de Técnica y Calidad</p>
-          </div>
-          <p className="rsa-footer-note">
-            Página <span className="page-number" aria-hidden="true" /> de <span className="page-count" aria-hidden="true" />
-          </p>
-        </footer>
-      </article>
+      <RsaSheet model={model} signerName={data.approvedByName} templateConfig={data.templateConfig} />
     </div>
   )
 }

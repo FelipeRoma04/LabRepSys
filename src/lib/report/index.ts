@@ -1,2 +1,5 @@
 export { buildReportModel, canIssueReport, bogotaDate } from './buildReportModel'
 export type * from './types'
+export { toReportModelInput, regulationLabel } from './fromRecords'
+export type { ReportRecords, ReportRecordResult } from './fromRecords'
+export { REPORT_PENDING_DECISIONS } from './pendingDecisions'
