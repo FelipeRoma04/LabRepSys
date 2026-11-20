@@ -29,12 +29,15 @@ function isRateLimited(): boolean {
 const SENSITIVE_PATTERNS: Array<[RegExp, string]> = [
   // Correos electrónicos
   [/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]'],
+  // Tokens enviados en texto o encabezados de autorización.
+  [/\bBearer\s+[A-Za-z0-9._~+\x2F-]+/gi, 'Bearer [TOKEN]'],
+  [/\b(?:sb_secret|sb_publishable)_[A-Za-z0-9_-]+\b/g, '[KEY]'],
   // Tokens JWT (tres segmentos base64url)
   [/ey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/g, '[JWT]'],
   // Claves de supabase (anon / service_role)
   [/eyJ[A-Za-z0-9+/=]{20,}/g, '[KEY]'],
   // Query params: ?token=..., ?key=..., ?password=..., ?apikey=...
-  [/([?&])(token|key|password|apikey|api_key|secret|access_token)=[^&\s]*/gi, '$1$2=[REDACTED]'],
+  [/([?&])((?:access|refresh|id)[_-]?token|token|api[_-]?key|key|password|passwd|secret|client_secret|credential|authorization|code)=[^&#\s]*/gi, '$1$2=[REDACTED]'],
   // UUIDs con posible PII (conservar solo la estructura, no el valor)
   // No redactamos UUIDs genéricos porque son útiles para trazar
 ]
@@ -56,8 +59,8 @@ export function sanitize(input: string): string {
  * Req 2.1
  */
 export function newCorrelationId(): string {
-  // Formato: xxxxxxxx-xxxx-4xxx (corto, legible en UI)
-  return 'cid-' + crypto.randomUUID().slice(0, 13)
+  // UUID completo: el mismo valor cabe en audit_logs.correlation_id.
+  return crypto.randomUUID()
 }
 
 /**
@@ -109,9 +112,17 @@ export async function logClientError({
 
   const message = sanitize(rawMessage)
   const stackHash = rawStack ? await hashStack(rawStack) : undefined
+  let userId: string | null = null
+  try {
+    const { data } = await supabase.auth.getSession()
+    userId = data.session?.user.id ?? null
+  } catch {
+    // Error reporting remains best-effort if local auth state is unavailable.
+  }
 
   try {
     await supabase.from('client_error_logs').insert({
+      user_id: userId,
       route: sanitize(route),
       message,
       stack_hash: stackHash ?? null,
