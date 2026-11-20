@@ -12,13 +12,13 @@ La configuración inicial se creó con `npx supabase init`. Este proyecto usa Su
    npx supabase link --project-ref <project-ref>
    ```
 
-3. Aplica las migraciones y el seed:
+3. Aplica las migraciones:
 
    ```bash
    npx supabase db push
    ```
 
-Alternativamente, copia el SQL de los archivos de `migrations/` en orden al SQL Editor de Supabase y ejecútalo. Después ejecuta `seed.sql`. La migración `20261017030000_catalogs.sql` crea los catálogos compartidos, `20261017140000_clients_quotes.sql` crea clientes, contactos y cotizaciones, `20261017150000_samples_reception.sql` crea muestras y recepción, y las migraciones p05 crean datos de campo y adjuntos. `seed.catalogs.development.sql` contiene únicamente nombres de laboratorios para pruebas locales y **no** se ejecuta automáticamente ni debe cargarse en producción.
+Alternativamente, copia el SQL de los archivos de `migrations/` en orden al SQL Editor de Supabase y ejecútalo. `db push` aplica migraciones, no seeds. Para una base local, los archivos configurados en `db.seed.sql_paths` se ejecutan con `db reset`; para el SQL Editor, ejecuta `seed.sql` y, si necesitas los catálogos técnicos, los archivos de `seed/` en el orden indicado en `seed/README.md`. Nunca ejecutes `seed-private/` contra producción. La migración `20261017030000_catalogs.sql` crea los catálogos compartidos, `20261017140000_clients_quotes.sql` crea clientes, contactos y cotizaciones, `20261017150000_samples_reception.sql` crea muestras y recepción, y las migraciones p05 crean datos de campo y adjuntos.
 
 ## Usuarios, Auth y primer ADMIN
 
@@ -63,7 +63,7 @@ Los campos técnicos de un ensayo no se pueden actualizar directamente. ADMIN cr
 
 Las plantillas se versionan mediante `(code, version)`. No se presupone una versión oficial. `holidays` es solo un catálogo; no se calculan plazos con sus datos mientras DP-014 siga pendiente.
 
-Para poblar laboratorios de prueba en una base local, ejecuta manualmente `seed.catalogs.development.sql` después de las migraciones. No agregues ese archivo a `db.seed.sql_paths` ni lo ejecutes en producción.
+`seed.catalogs.development.sql` es un seed local anterior. No lo ejecutes junto con los catálogos vigentes de `seed/`, porque usa códigos de laboratorio legados.
 
 El editor de plantillas guarda logos y firmas en el bucket privado `template-assets`. Solo ADMIN puede subir archivos; no se permite lectura directa desde Storage ni se crean URLs públicas. La descarga de esos assets queda pendiente de integrarse con un flujo de URL firmada de corta duración o con el procesamiento server-side del PDF.
 
