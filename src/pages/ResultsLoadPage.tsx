@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { EmptyState } from '../components/EmptyState'
@@ -84,6 +84,7 @@ const emptyRow = (): EditableRow => ({
 })
 
 const SOURCE_PAGE_NOTE = /^Página (\d+) del PDF$/
+const loadTabs: TabKey[] = ['pdf', 'paste', 'manual']
 
 /** Página de origen guardada en validation_messages de la fila importada */
 function sourcePageOf(messages: unknown): number | null {
@@ -816,6 +817,21 @@ export function ResultsLoadPage() {
     }
   }
 
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const currentTab = event.currentTarget.id.replace('-tab', '') as TabKey
+    const currentIndex = loadTabs.indexOf(currentTab)
+    const nextIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? loadTabs.length - 1
+        : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + loadTabs.length) % loadTabs.length
+    const nextTab = loadTabs[nextIndex]
+    setTab(nextTab)
+    document.getElementById(`${nextTab}-tab`)?.focus()
+  }
+
   return (
     <div>
       <PageHeader
@@ -872,8 +888,11 @@ export function ResultsLoadPage() {
             ] as const).map(([key, label]) => (
               <button
                 key={key}
+                id={`${key}-tab`}
+                aria-controls="result-load-panel"
                 aria-selected={tab === key}
                 className={`tab${tab === key ? ' tab-active' : ''}`}
+                onKeyDown={handleTabKeyDown}
                 onClick={() => {
                   setTab(key)
                   setError(null)
@@ -883,10 +902,19 @@ export function ResultsLoadPage() {
                   setDuplicateImportId(null)
                 }}
                 role="tab"
+                tabIndex={tab === key ? 0 : -1}
                 type="button"
               >{label}</button>
             ))}
           </div>
+
+          <div
+            aria-labelledby={`${tab}-tab`}
+            className="result-load-panel"
+            id="result-load-panel"
+            role="tabpanel"
+            tabIndex={0}
+          >
 
           {tab === 'pdf' && (
             <section className="load-section">
@@ -1096,6 +1124,7 @@ export function ResultsLoadPage() {
               </div>
             </section>
           )}
+          </div>
         </>
       )}
 

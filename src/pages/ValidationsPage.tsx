@@ -6,6 +6,8 @@ import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
 import { PageHeader } from '../components/PageHeader'
 import { useAuth } from '../hooks/useAuth'
+import { listSamples } from '../services/samples'
+import { listReports } from '../services/reports'
 import { getValidationHistory, resolveValidationWarning, runValidations } from '../services/validations'
 import type {
   ValidationEntityType,
@@ -27,6 +29,8 @@ export function ValidationsPage() {
   )
   const [runs, setRuns] = useState<ValidationRun[]>([])
   const [issues, setIssues] = useState<ValidationIssue[]>([])
+  const [sampleOptions, setSampleOptions] = useState<Awaited<ReturnType<typeof listSamples>>>([])
+  const [reportOptions, setReportOptions] = useState<Awaited<ReturnType<typeof listReports>>>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,12 +50,17 @@ export function ValidationsPage() {
       const history = await getValidationHistory()
       setRuns(history.runs)
       setIssues(history.issues)
+      if (canExecute) {
+        const [samples, reports] = await Promise.all([listSamples(), listReports()])
+        setSampleOptions(samples)
+        setReportOptions(reports)
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo cargar el historial de validaciones.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [canExecute])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void reload(), 0)
@@ -67,9 +76,17 @@ export function ValidationsPage() {
     return matchesSeverity && matchesRule && matchesEntity && matchesStatus
   }), [entityFilter, issues, ruleFilter, severityFilter, statusFilter])
 
+  const entityLabels = useMemo(() => {
+    const labels = new Map<string, string>()
+    sampleOptions.forEach((sample) => labels.set(sample.id, `Muestra ${sample.code}`))
+    reportOptions.forEach((report) => labels.set(report.id, `Reporte ${report.code ?? 'sin código'} · v${report.version}`))
+    return labels
+  }, [reportOptions, sampleOptions])
+  const filterEntityIds = [...new Set(issues.map((issue) => issue.run.entity_id))]
+
   const execute = async (type: ValidationEntityType, id: string) => {
     if (!id.trim()) {
-      setError('Indique el identificador de la entidad que se validará.')
+      setError('Seleccione la muestra o el reporte que se validará.')
       return
     }
     setSaving(true)
@@ -175,13 +192,24 @@ export function ValidationsPage() {
         <section className="validation-run-panel">
           <h2>Ejecutar validación</h2>
           <label>Tipo de entidad
-            <select onChange={(event) => setEntityType(event.target.value as ValidationEntityType)} value={entityType}>
+            <select onChange={(event) => {
+              setEntityType(event.target.value as ValidationEntityType)
+              setEntityId('')
+            }} value={entityType}>
               <option value="SAMPLE">Muestra</option>
               <option value="REPORT">Reporte</option>
             </select>
           </label>
-          <label>Identificador (UUID)
-            <input onChange={(event) => setEntityId(event.target.value)} value={entityId} />
+          <label>{entityType === 'SAMPLE' ? 'Muestra a validar' : 'Reporte a validar'}
+            <select
+              onChange={(event) => setEntityId(event.target.value)}
+              value={entityId}
+            >
+              <option value="">Seleccione {entityType === 'SAMPLE' ? 'una muestra' : 'un reporte'}</option>
+              {entityType === 'SAMPLE'
+                ? sampleOptions.map((sample) => <option key={sample.id} value={sample.id}>{sample.code} · {sample.client?.business_name ?? 'Cliente sin nombre'}</option>)
+                : reportOptions.map((report) => <option key={report.id} value={report.id}>{report.code ?? 'Reporte sin código'} · v{report.version}</option>)}
+            </select>
           </label>
           <button
             className="catalog-primary-button"
@@ -204,8 +232,11 @@ export function ValidationsPage() {
         <label>Regla
           <input onChange={(event) => setRuleFilter(event.target.value)} value={ruleFilter} />
         </label>
-        <label>Entidad (UUID)
-          <input onChange={(event) => setEntityFilter(event.target.value)} value={entityFilter} />
+        <label>Registro
+          <select onChange={(event) => setEntityFilter(event.target.value)} value={entityFilter}>
+            <option value="">Todas las entidades</option>
+            {filterEntityIds.map((id) => <option key={id} value={id}>{entityLabels.get(id) ?? `Registro ${id.slice(0, 8)}`}</option>)}
+          </select>
         </label>
         <label>Estado
           <select onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} value={statusFilter}>

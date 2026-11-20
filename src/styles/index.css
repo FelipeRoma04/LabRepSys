@@ -1,7 +1,7 @@
 :root {
   font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
-  color: #202b36;
-  background: #f4f6f8;
+  color: #182d3c;
+  background: #f3f6f7;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -9,10 +9,25 @@
   font-optical-sizing: auto;
   font-weight: 400;
 
-  --color-primary: #154c79;
-  --color-muted: #5d6e7c;
-  --color-border: #dce3e9;
+  --color-primary: #126b68;
+  --color-primary-strong: #0d5553;
+  --color-primary-soft: #e3f2f0;
+  --color-ink: #182d3c;
+  --color-muted: #526875;
+  --color-border: #d8e2e5;
   --color-surface: #ffffff;
+  --color-canvas: #f3f6f7;
+  --color-focus: #075eaa;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-card: 0 4px 16px rgb(27 56 68 / 5%);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
 }
 
 * {
@@ -39,8 +54,8 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid #154c79;
-  outline-offset: 2px;
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
 }
 
 .visually-hidden {

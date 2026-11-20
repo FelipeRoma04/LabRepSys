@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   getValidationHistory: vi.fn(),
   resolveValidationWarning: vi.fn(),
   runValidations: vi.fn(),
+  listSamples: vi.fn(),
+  listReports: vi.fn(),
 }))
 
 vi.mock('../hooks/useAuth', () => ({
@@ -19,6 +21,14 @@ vi.mock('../services/validations', () => ({
   getValidationHistory: mocks.getValidationHistory,
   resolveValidationWarning: mocks.resolveValidationWarning,
   runValidations: mocks.runValidations,
+}))
+
+vi.mock('../services/samples', () => ({
+  listSamples: mocks.listSamples,
+}))
+
+vi.mock('../services/reports', () => ({
+  listReports: mocks.listReports,
 }))
 
 const run = {
@@ -66,6 +76,8 @@ describe('motor de validaciones', () => {
     vi.clearAllMocks()
     mocks.roles = [{ code: 'ANALISTA', name: 'Analista' }]
     mocks.getValidationHistory.mockResolvedValue({ runs: [run], issues: [warning, blocking] })
+    mocks.listSamples.mockResolvedValue([{ id: 'sample-uuid', code: 'AG0001', client: { business_name: 'Cliente de prueba' } }])
+    mocks.listReports.mockResolvedValue([])
     mocks.runValidations.mockResolvedValue('run-2')
     mocks.resolveValidationWarning.mockResolvedValue(undefined)
   })
@@ -83,7 +95,8 @@ describe('motor de validaciones', () => {
     const user = userEvent.setup()
     renderPage()
 
-    await user.type(await screen.findByLabelText('Identificador (UUID)'), 'sample-uuid')
+    await screen.findByRole('option', { name: 'AG0001 · Cliente de prueba' })
+    await user.selectOptions(screen.getByLabelText('Muestra a validar'), 'sample-uuid')
     await user.click(screen.getByRole('button', { name: 'Ejecutar validaciones' }))
 
     await waitFor(() => expect(mocks.runValidations).toHaveBeenCalledWith('SAMPLE', 'sample-uuid'))
