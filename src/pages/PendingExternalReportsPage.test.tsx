@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PendingExternalReportsPage } from './PendingExternalReportsPage'
 import type { PendingExternalReport } from '../types/externalShipments'
+import { getAxeViolations } from './a11yTestUtils'
 
 const mocks = vi.hoisted(() => ({
   roles: [{ code: 'RECEPCION', name: 'Recepción' }],
@@ -53,6 +54,13 @@ describe('reportes externos pendientes', () => {
       .mockResolvedValueOnce([report])
       .mockResolvedValue([ ])
     mocks.receiveExternalReport.mockResolvedValue(undefined)
+  })
+
+  it('no presenta violaciones axe en reportes externos pendientes', async () => {
+    mocks.listPendingExternalReports.mockResolvedValue([report])
+    const { container } = render(<main><MemoryRouter><PendingExternalReportsPage /></MemoryRouter></main>)
+    await screen.findByRole('heading', { name: 'Laboratorio Uno' })
+    expect(await getAxeViolations(container)).toEqual([])
   })
 
   it('agrupa por laboratorio, destaca retraso y al recibir lo retira de pendientes', async () => {

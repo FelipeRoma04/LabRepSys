@@ -490,7 +490,7 @@ export function TemplateEditorPage() {
               <p><strong>Fecha de muestreo:</strong> 29/05/2026</p>
             </section>
 
-            <table className="rsa-results-table">
+            <div aria-label="Resultados de análisis" className="report-table-scroll" role="region" tabIndex={0}><table className="rsa-results-table"><caption className="visually-hidden">Vista previa de resultados del reporte</caption>
               <thead>
                 <tr>
                   {config.resultColumns.filter((c) => c.visible).map((col) => (
@@ -505,7 +505,7 @@ export function TemplateEditorPage() {
                   ))}
                 </tr>
               </tbody>
-            </table>
+            </table></div>
 
             <footer className="rsa-footer">
               <p>{config.texts.footer || '—'}</p>

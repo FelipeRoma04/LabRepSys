@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FieldDataPage } from './FieldDataPage'
+import { getAxeViolations } from './a11yTestUtils'
 
 const mocks = vi.hoisted(() => ({
   roles: [{ code: 'MUESTREO', name: 'Muestreo' }],
@@ -89,6 +90,12 @@ beforeEach(() => {
 })
 
 describe('datos de campo y adjuntos', () => {
+  it('no presenta violaciones axe en datos de campo', async () => {
+    const { container } = renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    expect(await getAxeViolations(container)).toEqual([])
+  })
+
   it('guarda cero como VALUE y separa NOT_REPORTED de un valor numérico', async () => {
     const user = userEvent.setup()
     renderPage()

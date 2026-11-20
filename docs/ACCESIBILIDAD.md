@@ -1,51 +1,55 @@
 # Accesibilidad y responsive
 
-Estado: revisión parcial de código y prueba axe del diálogo compartido. No se certifica conformidad WCAG 2.1 AA.
+Estado: correcciones de teclado, semántica y responsive aplicadas; auditoría parcial. Esto no certifica conformidad WCAG 2.1 AA.
 
-## Hallazgos revisados y correcciones
+## Verificaciones realizadas
 
-- El foco visible global usa `:focus-visible` en `src/styles/index.css`.
-- En anchos de hasta 800 px, botones y campos tienen altura mínima de 44 px; los controles de casilla y opción tienen un área visual de 20 px en `src/styles/app.css`.
-- Los diálogos compartidos en `src/components/Modal.tsx` ahora reciben el foco al abrirse, mantienen la tabulación dentro del diálogo, cierran con Escape y devuelven el foco al elemento que los abrió. `src/components/Modal.test.tsx` cubre ese comportamiento.
-- `axe-core` está registrado como dependencia de desarrollo. La prueba del diálogo compartido comprueba violaciones axe; omite contraste de color porque jsdom no representa fielmente el renderizado visual.
-- La tabla compartida usa encabezados de columna (`scope="col"`) y una leyenda accesible en `src/components/DataTable.tsx`.
-- El formulario de datos de campo tiene campos de al menos 44 px y pasa a una columna en anchos móviles en `src/styles/app.css`.
+- `npm test -- --maxWorkers=1` pasa (153 pruebas). Las ejecuciones paralelas han tenido un timeout en una prueba de `ResultsLoadPage.test.tsx`, fuera del alcance y sin modificar; esa prueba pasa al ejecutarse sola.
+- Se agregaron pruebas axe-core en los estados iniciales de componentes de Clientes, Catálogos (Ensayos), Muestras, Datos de campo, Envíos externos, Reportes externos pendientes, Conciliación y la barra de pestañas de Resultados pendientes. La prueba compartida de `Modal` también ejecuta axe-core y verifica el ciclo de foco, Escape y restauración del foco.
+- Las comprobaciones axe se hacen en DOM simulado; desactivan la regla de contraste porque jsdom no representa el renderizado visual. No equivalen a visitar rutas autenticadas ni a una auditoría completa.
+- El test de Datos de campo mantiene una operación disponible a 390 px, pero no mide desbordamiento real. No se verificó visualmente el desbordamiento a 390 px o 768 px.
+- El foco visible global usa `:focus-visible`. El menú lateral móvil se excluye del foco mientras está cerrado; las pestañas de resultados admiten flechas, Inicio y Fin. Las tablas desplazables se pueden enfocar con teclado y anuncian un nombre; las tablas directas tienen leyendas y encabezados de columna.
+- Los avisos dinámicos de éxito, error y validación usan regiones de estado/alerta cuando corresponde. Contraste, lector de pantalla y navegación de teclado en toda la aplicación siguen pendientes de revisión manual.
 
-## Pendiente de auditoría automatizada y manual
+## Estado por ruta
 
-La prueba axe cubre el diálogo compartido, no todas las rutas. Por ello no se puede afirmar que haya cero violaciones críticas o serias en la aplicación completa. Tampoco se ha hecho una inspección visual en dispositivos de 390 px, 768 px y escritorio ni una prueba completa con lector de pantalla. Las rutas requieren una sesión de Supabase con los roles indicados para revisar el contenido protegido.
+“Componente probado” significa que una prueba de componente ejecutó axe-core en el estado descrito; no significa que se verificó la ruta real, la sesión/rol, todos los estados de interacción ni el contenido de producción. Las rutas marcadas como no verificadas no se deben considerar accesibles por haber pasado pruebas de componentes vecinos.
 
-| Ruta | Estado de revisión | Pendiente |
-| --- | --- | --- |
-| `/` | Código de rutas revisado | Axe con sesión autenticada y revisión de teclado |
-| `/clientes` | Usa diálogos compartidos | Axe, etiquetas y errores de todos los formularios |
-| `/cotizaciones` | Usa diálogos compartidos | Axe, etiquetas y errores de todos los formularios |
-| `/muestras` | Usa diálogos compartidos | Axe, tablas y controles de filtros |
-| `/muestras/recepcion` | Marcador de paso accesible en código | Axe y verificación de teclado del asistente |
-| `/muestras/datos-de-campo` | Reglas responsive visibles en CSS | Axe y prueba de desbordamiento a 390 px y 768 px |
-| `/muestras/buscar` | Comparte la página de muestras | Axe y teclado de filtros |
-| `/resultados/carga` | Tabla con encabezados de columna | Axe y lectura de resultados con operador |
-| `/resultados/pendientes` | Código de ruta revisado | Axe y teclado |
-| `/resultados/conciliacion` | Usa diálogos compartidos | Axe y etiquetas de controles |
-| `/normativa` | Código de ruta revisado | Axe y teclado |
-| `/validaciones` | Código de ruta revisado | Axe y teclado |
-| `/reportes/borradores` | Código de ruta revisado | Axe y teclado |
-| `/reportes/revision` | Código de ruta revisado | Axe y teclado |
-| `/reportes/aprobados` | Código de ruta revisado | Axe y teclado |
-| `/reportes/emitidos` | Código de ruta revisado | Axe y teclado |
-| `/catalogos/ensayos` | Usa diálogos compartidos | Axe, etiquetas y errores de formularios |
-| `/catalogos/laboratorios` | Usa diálogos compartidos | Axe, etiquetas y errores de formularios |
-| `/catalogos/metodos` | Usa diálogos compartidos | Axe, etiquetas y errores de formularios |
-| `/catalogos/matrices` | Usa diálogos compartidos | Axe, etiquetas y errores de formularios |
-| `/catalogos/plantillas` | Usa diálogos compartidos | Axe, etiquetas y errores de formularios |
-| `/catalogos/festivos` | Usa diálogos compartidos | Axe, etiquetas y errores de formularios |
-| `/indicadores` | Código de ruta revisado | Axe y teclado |
-| `/auditoria` | Código de ruta revisado | Axe y teclado |
-| `/administracion` | Código de ruta revisado | Axe y teclado |
-| `/administracion/diagnostico` | Código de ruta revisado | Axe y teclado |
-| `/administracion/migracion` | Código de ruta revisado | Axe y teclado |
-| `/catalogos/plantillas/:id/editar` | Código de ruta revisado | Axe, controles del editor y teclado |
+| Ruta | Estado comprobado |
+| --- | --- |
+| `/` | No verificada con axe ni con teclado |
+| `/login` | No verificada con axe ni con teclado |
+| `/access-denied` | No verificada con axe ni con teclado |
+| Ruta no encontrada (`*`) | No verificada con axe ni con teclado |
+| `/clientes` | Componente de lista comprobado con axe; estado con datos simulados |
+| `/cotizaciones` | No verificada con axe |
+| `/muestras` | Componente de lista comprobado con axe; estado con datos simulados |
+| `/muestras/recepcion` | No verificada con axe ni con teclado |
+| `/muestras/datos-de-campo` | Componente comprobado con axe; el test de 390 px no mide overflow |
+| `/muestras/buscar` | No verificada como ruta; comparte componente con Muestras |
+| `/resultados/carga` | No verificada ni modificada; excluida explícitamente de este alcance |
+| `/resultados/pendientes` | Barra de pestañas comprobada con axe y flechas; contenido hijo simulado en esa prueba |
+| `/resultados/conciliacion` | Componente comprobado con axe; estado con datos simulados |
+| `/laboratorios-externos` | Componente comprobado con axe; estado con datos simulados |
+| `/normativa` | No verificada con axe ni con teclado |
+| `/validaciones` | No verificada con axe ni con teclado |
+| `/reportes/borradores` | No verificada con axe ni con teclado |
+| `/reportes/revision` | No verificada con axe ni con teclado |
+| `/reportes/aprobados` | No verificada con axe ni con teclado |
+| `/reportes/emitidos` | No verificada con axe ni con teclado |
+| `/catalogos/ensayos` | Componente comprobado con axe; estado con datos simulados |
+| `/catalogos/laboratorios` | No verificada individualmente con axe |
+| `/catalogos/metodos` | No verificada individualmente con axe |
+| `/catalogos/matrices` | No verificada individualmente con axe |
+| `/catalogos/plantillas` | No verificada individualmente con axe |
+| `/catalogos/festivos` | No verificada individualmente con axe |
+| `/catalogos/plantillas/:id/editar` | No verificada con axe ni con teclado |
+| `/indicadores` | No verificada con axe ni con teclado |
+| `/auditoria` | No verificada con axe ni con teclado |
+| `/administracion` | No verificada con axe ni con teclado |
+| `/administracion/diagnostico` | No verificada con axe ni con teclado |
+| `/administracion/migracion` | No verificada con axe ni con teclado |
 
-## Cómo completar la auditoría
+## Pendiente
 
-Extender las pruebas axe a las rutas con datos de prueba y roles autorizados, y guardar los resultados por ruta. Corregir primero las violaciones críticas y serias. Repetir las pruebas a 390 px, 768 px y escritorio, incluyendo teclado y lector de pantalla. Actualizar esta tabla con hallazgos y resultados medidos.
+Verificar rutas completas con roles autorizados y datos representativos; probar teclado y lector de pantalla; medir overflow horizontal en 390 px y 768 px y revisar contraste con navegador. Añadir los resultados por ruta después de ejecutarlos. La carga de resultados requiere una tarea posterior, fuera del alcance excluido.

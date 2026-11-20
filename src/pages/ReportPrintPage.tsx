@@ -142,7 +142,7 @@ export function ReportPrintPage() {
 
         {/* Información de la muestra — pendiente de datos reales (p03/p04) */}
         <section className="rsa-client-info" aria-label="Información del cliente">
-          <table className="rsa-info-table">
+          <table className="rsa-info-table"><caption className="visually-hidden">Información del cliente</caption>
             <tbody>
               <tr><th scope="row">Cliente</th><td>{isIssued ? snapshot?.client?.business_name ?? 'No incluido en el snapshot' : sampleClient?.business_name ?? 'Pendiente de selección'}</td></tr>
               <tr><th scope="row">Contacto</th><td>{isIssued ? snapshot?.contact?.name ?? 'No incluido en el snapshot' : report.contact_id ?? '—'}</td></tr>
@@ -163,7 +163,7 @@ export function ReportPrintPage() {
         {/* Tabla de resultados */}
         <section className="rsa-results-section" aria-label="Resultados de análisis">
           <h2>Resultados de análisis</h2>
-          <table className="rsa-results-table">
+          <div aria-label="Resultados de análisis" className="report-table-scroll" role="region" tabIndex={0}><table className="rsa-results-table"><caption className="visually-hidden">Resultados de análisis</caption>
             <thead>
               <tr>
                 <th scope="col">Ítem</th>
@@ -201,7 +201,7 @@ export function ReportPrintPage() {
                 )
               }
             </tbody>
-          </table>
+          </table></div>
         </section>
 
         {/* Notas de acreditación IDEAM — texto desde configuración de plantilla */}

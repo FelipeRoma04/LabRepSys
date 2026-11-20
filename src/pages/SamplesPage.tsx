@@ -324,9 +324,10 @@ export function SamplesPage() {
       <Modal open={!!importRows} onClose={() => !importing && setImportRows(null)} title="Importar muestras desde CSV">
         {importRows && <div className="catalog-form">
           <p>Vista previa. No se ejecutan enlaces ni contenido externo. Las filas con errores no se importan; advertencias de fecha requieren revisión.</p>
-          <div className="table-container">
+          <div aria-label="Vista previa de importación de muestras" className="table-container" role="region" tabIndex={0}>
             <table className="data-table">
-              <thead><tr><th>Fila</th><th>Código</th><th>Cliente</th><th>Matriz</th><th>Fecha de muestreo</th><th>Resultado de validación</th></tr></thead>
+              <caption className="visually-hidden">Vista previa de importación de muestras</caption>
+              <thead><tr><th scope="col">Fila</th><th scope="col">Código</th><th scope="col">Cliente</th><th scope="col">Matriz</th><th scope="col">Fecha de muestreo</th><th scope="col">Resultado de validación</th></tr></thead>
               <tbody>{importRows.map((row) => (
                 <tr key={row.input.row}>
                   <td>{row.input.row}</td><td>{row.input.code}</td>
@@ -337,7 +338,7 @@ export function SamplesPage() {
               ))}</tbody>
             </table>
           </div>
-          {importErrors.length > 0 && <ul className="catalog-import-errors">{importErrors.map((item, index) => <li key={`${item.row}-${index}`}>Fila {item.row}: {item.message}</li>)}</ul>}
+          {importErrors.length > 0 && <ul aria-label="Errores de importación" className="catalog-import-errors" role="alert">{importErrors.map((item, index) => <li key={`${item.row}-${index}`}>Fila {item.row}: {item.message}</li>)}</ul>}
           <div className="catalog-form-actions">
             <button disabled={importing} onClick={() => setImportRows(null)} type="button">Cerrar</button>
             <button className="catalog-primary-button" disabled={importing || importRows.every((row) => row.issues.some((issue) => issue.severity === 'error'))} onClick={() => void confirmImport()} type="button">

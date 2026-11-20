@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReconciliationPage } from './ReconciliationPage'
+import { getAxeViolations } from './a11yTestUtils'
 
 const mocks = vi.hoisted(() => ({
   roles: [{ code: 'ANALISTA', name: 'Analista' }],
@@ -86,6 +87,12 @@ describe('conciliación de inconsistencias', () => {
     mocks.detectReconciliationIssues.mockResolvedValue(4)
     mocks.resolveIssue.mockResolvedValue('RESOLVED')
     mocks.createStorageSignedUrl.mockResolvedValue('https://signed.example/source.pdf')
+  })
+
+  it('no presenta violaciones axe en conciliación', async () => {
+    const { container } = render(<main><MemoryRouter><ReconciliationPage /></MemoryRouter></main>)
+    await screen.findByRole('heading', { level: 1 })
+    expect(await getAxeViolations(container)).toEqual([])
   })
 
   it('mantiene los datos DEMO separados y permite filtrarlos explícitamente', async () => {

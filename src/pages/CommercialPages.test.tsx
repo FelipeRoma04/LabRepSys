@@ -7,6 +7,7 @@ function type(element: HTMLElement, value: string) {
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ClientsPage } from './ClientsPage'
 import { QuotesPage } from './QuotesPage'
+import { getAxeViolations } from './a11yTestUtils'
 
 const mocks = vi.hoisted(() => ({
   listClients: vi.fn(),
@@ -87,6 +88,11 @@ beforeEach(() => {
 })
 
 describe('gestión comercial', () => {
+  it('no presenta violaciones axe en la lista de clientes', async () => {
+    const { container } = render(<main><ClientsPage /></main>)
+    await screen.findByRole('heading', { level: 1 })
+    expect(await getAxeViolations(container)).toEqual([])
+  })
   it('bloquea la creación de un cliente con NIT duplicado', async () => {
     const user = userEvent.setup()
     mocks.findClientByNit.mockResolvedValue(client)

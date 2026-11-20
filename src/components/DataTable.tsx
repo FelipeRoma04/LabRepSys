@@ -20,7 +20,7 @@ export function DataTable<Row>({
   caption,
 }: DataTableProps<Row>) {
   return (
-    <div className="table-container">
+    <div aria-label={caption} className="table-container" role="region" tabIndex={0}>
       <table className="data-table">
         <caption className="visually-hidden">{caption}</caption>
         <thead>
