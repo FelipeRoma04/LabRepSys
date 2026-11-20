@@ -1,0 +1,107 @@
+                                                                                                                                                  FOR 04 050, Versión N° 15/2025-10-13.
+                                                                        RESULTADOS DE ANÁLISIS
+                                                                                         R 434613
+Empresa:                 EMPRESA CLIENTEXXXXXX                                        Fecha Recepción:                           2026-06-02
+                                                                                      Fecha de Emisión de
+Nit:                     000.000.000-0                                                                                           2026-06-24
+                                                                                      Resultados:
+Dirección:               DIRECCION CLIENTE                                            Fecha de Muestreo:                         2026-05-26
+Solicitado por:          CONTACTOXXXXXX                                               Muestreo a Cargo de:                       CLIENTE
+Telefono:                0000000000                                                   Plan de muestreo:                          NO REPORTA
+Celular:                 -                                                            Procedimiento de muestreo:                 No Reporta
+E-mail:                  correo@ejemplo.coXXXXXXXXXXXXXXX                             Número total de muestras:                  1
+Orden de Servicio: 000000                                                             Lugar de Muestreo:                         NO REPORTA
+                                                                                      Tipo de muestreo:                          Compuesta
+                                                                                      Tipo de Muestra:                           ARI( )        ARD(X)        ARnD( )       AN( )
+                                                                                                                                 AP( )         AM( )         S( )          AX( )
+                                                                              Reporte de Resultados
+                                                                                                                                     Límite de
+           Fecha de Análisis                                                                                                                                              Salida 1
+  Item                                      Parámetro                         Método                         Técnica              Cuantificación        Unidad
+           (AAAA- MM-DD)
+                                                                                                                                   del método
+                                                                                                                                                                         MD618744
+                                      Compuestos Orgánicos
+    1          2026-06-05                                                  ISO 9562:2004               Microcolumbiometria            0,0500             mg/L         0,473 +/- 0,0344
+                                 Halogenados Adsorbibles (AOX)*
+                                   Fósforo Reactivo Total (Leído
+    2          2026-06-02                                             SM 4500 P,E Ed.23 2017           Espectrofotometria             0,0700            mg P/L            <0,0700
+                                        como Ortofosfato)*
+    3          2026-06-12                  Fósforo total*          SM 4500-P B.5,E, Ed.23 2017         Espectrofotometria             0,0700            mg P/L            <0,0700
+    4          2026-06-02                    Nitratos*              SM 4500 NO3 D Ed.23 2017              Electrometría                1,00           mgNNO3/L        1,03 +/- 0,0892
+    5          2026-06-02                    Nitritos*              SM 4500 NO2- B, Ed.23 2017         Espectrofotometria             0,00608         mg N-NO2/L          <0,00608
+    6          2026-06-09              Nitrogeno Amoniacal*        SM 4500 NH3 B,C, Ed.23 2017             Volumetría                  1,00           mg/L NH3-N           <1,00
+    7          2026-06-13                Nitrógeno Total*             UNE EN ISO 20236:2022                Combustión                  0,500             mg/L          3,73 +/- 0,133
+    8          2026-06-16                    Sulfatos*             SM 4500-SO4-2 E, Ed.23 2017            Turbidimetría                5,00            mgSO4/L          22,6 +/- 1,12
+    9          2026-06-10                    Sulfuros*              SM 4500 S2 CF, Ed.23 2017              Volumetría                  1,00            mg S2-/L            <1,00
+ARI: Agua Residual Industrial, ARD: Agua Residual Doméstica, ARnD: Agua Residual no Doméstica, AN: Agua Superficial o Subterranea, AP: Agua Potable, S: Suelo, AM: Agua Marina, AX: Otros
+* ChemiLab tiene estos parámetros acreditados mediante Resolución 1042 de 2024 del IDEAM
+**Parámetro realizado por laboratorio externo con acreditación, vigente a la fecha, bajo la norma ISO/IEC 17025:2017
+*** Parámetro realizado por laboratorio externo, SIN acreditar.
+Parámetro no acreditado
+                                        Observaciones: Métodos de Análisis aplicados según el Laboratorio de Suelos IGAC y US-EPA (aplica para suelos)
+                                    Métodos de Análisis aplicados según Standard Methods for the Examination of Water and Wastewater (aplica para aguas)
+                                                            Resultados validos únicamente para la(s) muestras analizadas.
+                                          Prohibida la reproducción total o parcial de este informe sin autorización previa de Chemilab S.A.S
+                                                                            FIRMANTE LABORATORIOXX
+                                                                              Profesional de Reportes
+                                                                                    PQAmb-0000
+                                                                               **FIN DEL REPORTE**
+                                                                                                                                                                     Página 1 de 2
+                     CHEMILAB S.A.S                                                                                       CARRERA 21 N° 195-50, Bodega 5, 6 y 7 B. Canaima
+                     Telefax: (+57)00000000                                                                                                                               BOGOTA D.C
+
+                                                                                                                                                  FOR 04 050, Versión N° 15/2025-10-13.
+                                                                        RESULTADOS DE ANÁLISIS
+                                                                                         R 434613
+Empresa:                 EMPRESA CLIENTEXXXXXX                                        Fecha Recepción:                           2026-06-02
+Nit:                     000.000.000-0                                                Fecha de Emisión de Resultados:2026-06-24
+Dirección:               DIRECCION CLIENTE                                            Fecha de Muestreo:                         2026-05-26
+Solicitado por:          CONTACTOXXXXXX                                               Muestreo a Cargo de:                       CLIENTE
+Telefono:                0000000000                                                   Plan de muestreo:                          NO REPORTA
+Celular:                 -                                                            Procedimiento de muestreo:                 No Reporta
+E-mail:                  correo@ejemplo.coXXXXXXXXXXXXXXX                             Número total de muestras:                  1
+Orden de Servicio: 000000                                                             Lugar de Muestreo:                         NO REPORTA
+                                                                                      Tipo de muestreo:                          Compuesta
+                                                                                      Tipo de Muestra:                           ARI( )        ARD(X)        ARnD( )       AN( )
+                                                                                                                                 AP( )         AM( )         S( )          AX( )
+OBSERVACIONES ANALITICAS
+En la determinación de ensayos fisicoquímicos (Fósforo Reactivo Total (Leído como Ortofosfato)*, Nitratos* & Nitritos*) se presentó una desviación del
+método debido a que el tiempo transcurrido entre la toma de muestra y el análisis superó el tiempo de estabilidad del analito establecido en el método de
+referencia.
+La incertidumbre reportada se calcula para un nivel de confianza del 95%, con un factor de cubrimiento k=2
+Para los parámetros que se encuentran por debajo del Límite de cuantificación no se especifica la incertidumbre
+Los resultados se aplican a la muestra de este reporte suministrada por el cliente y bajo las condiciones en que fue recibida
+En la determinación de los Compuestos Orgánicos Halogenos Adsorbibles (AOX), se presentó desviación del método, debido a que el tiempo transcurrido
+entre la toma de muestra y el análisis superó el tiempo de estabilidad del analito establecido en el método de referencia.
+                                        Observaciones: Métodos de Análisis aplicados según el Laboratorio de Suelos IGAC y US-EPA (aplica para suelos)
+                                    Métodos de Análisis aplicados según Standard Methods for the Examination of Water and Wastewater (aplica para aguas)
+                                                            Resultados validos únicamente para la(s) muestras analizadas.
+                                          Prohibida la reproducción total o parcial de este informe sin autorización previa de Chemilab S.A.S
+                                                                            FIRMANTE LABORATORIOXX
+                                                                              Profesional de Reportes
+                                                                                    PQAmb-0000
+                                                                                                                                                                    Página 2 de 2
+                     CHEMILAB S.A.S                                                                                       CARRERA 21 N° 195-50, Bodega 5, 6 y 7 B. Canaima
+                     Telefax: (+57)00000000                                                                                                                               BOGOTA D.C
+
+Bogotá D.C., 24 de junio de 2026
+Señores:
+EMPRESA CLIENTEXXXXXX
+Att: CONTACTOXXXXXX
+La Ciudad.
+Asunto:          Entrega Informe de Resultados de Análisis R 434613
+Cordial Saludo.
+Atendiendo la solicitud de análisis enviada por ustedes, hago entrega del informe de resultados de
+análisis correspondiente a las muestras:
+           N° Muestra                        Código Interno                                             Identificación Cliente
+                     1                            MD618744                                                           Salida 1
+Cualquier solicitud de aclaración del presente reporte, así como sugerencias, quejas y/o reclamaciones
+por     favor      comunicarlas             a   coordinación            calidad       comunicándose               al    teléfono        0000000          o    al   correo
+electrónico correo@ejemplo.coXXXXXX.
+Agradezco su atención.
+Atentamente.
+FIRMANTE LABORATORIOXX
+Profesional de Reportes
+               CHEMILAB S.A.S                                                                                        CARRERA 21 N° 195-50, Bodega 5, 6 y 7 B. Canaima
+               Telefax: (+57)00000000                                                                                                                               BOGOTA D.C
