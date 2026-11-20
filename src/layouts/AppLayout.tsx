@@ -41,6 +41,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="app-shell">
       <aside
+        id="primary-navigation"
         className={`sidebar${isMenuOpen ? ' sidebar-open' : ''}`}
         aria-label="Navegación principal"
       >
@@ -83,6 +84,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <header className="topbar">
           <button
             aria-expanded={isMenuOpen}
+            aria-controls="primary-navigation"
             aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
             className="menu-toggle"
             onClick={() => setIsMenuOpen((open) => !open)}

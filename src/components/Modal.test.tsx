@@ -17,6 +17,10 @@ function ModalHarness() {
           <input />
         </label>
         <button type="button">Guardar</button>
+        <input aria-label="Campo oculto" type="hidden" />
+        <div hidden><button type="button">Oculto</button></div>
+        <button aria-hidden="true" type="button">Ignorado</button>
+        <div contentEditable="true" role="textbox" aria-label="Notas" />
       </Modal>
     </>
   )
@@ -45,6 +49,7 @@ describe('Modal', () => {
     const close = screen.getByRole('button', { name: 'Cerrar ventana' })
     const input = screen.getByRole('textbox', { name: 'Nombre' })
     const save = screen.getByRole('button', { name: 'Guardar' })
+    const notes = screen.getByRole('textbox', { name: 'Notas' })
 
     expect(close).toHaveFocus()
     await user.tab()
@@ -52,9 +57,11 @@ describe('Modal', () => {
     await user.tab()
     expect(save).toHaveFocus()
     await user.tab()
+    expect(notes).toHaveFocus()
+    await user.tab()
     expect(close).toHaveFocus()
     await user.tab({ shift: true })
-    expect(save).toHaveFocus()
+    expect(notes).toHaveFocus()
 
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
