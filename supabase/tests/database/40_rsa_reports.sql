@@ -1,140 +1,103 @@
--- K02: Pruebas de segregación, emisión e inmutabilidad del RSA
--- Req 3.6 (transition_report/issue_report devuelven {ok:false} y auditan),
--- Req 3.7 (reporte emitido, snapshot y filas relacionadas son inmutables)
-
+-- K02: segregaciÃ³n de funciones RSA e inmutabilidad tras emitir.
+\ir 000_helpers.psql
+select to_regclass('public.reports') is not null as has_rsa_module \gset
+\if :has_rsa_module
 begin;
+select plan(11);
 
--- Verificar que existen las tablas del módulo RSA
-do $
-begin
-  if to_regclass('public.reports') is null then
-    raise notice 'SKIP: módulo RSA no existe aún';
-  end if;
-end;
-$;
+select tests.create_test_user('ADMIN') as admin_id \gset
+select tests.create_test_user('ANALISTA') as analyst_id \gset
+select tests.create_test_user('JEFE_TECNICA_CALIDAD') as quality_lead_id \gset
 
-select case
-  when to_regclass('public.reports') is not null then 7
-  else 0
-end tests_count \gset
+-- Este usuario preparador tambiÃ©n tiene JTC para probar la regla de segregaciÃ³n,
+-- aunque el usuario de emisiÃ³n es distinto.
+insert into public.user_roles (user_id, role_code, assigned_by)
+values (:'analyst_id'::uuid, 'JEFE_TECNICA_CALIDAD', :'admin_id'::uuid);
 
-select plan(:tests_count);
+insert into public.clients (id, business_name, active)
+values
+  ('40000000-0000-0000-0000-000000000001', 'Cliente RSA K02', true),
+  ('40000000-0000-0000-0000-000000000099', 'Otro cliente RSA K02', true);
 
--- Salir temprano si el módulo no existe
-do $
-begin
-  if to_regclass('public.reports') is null then
-    perform skip(7, 'Módulo RSA no existe aún');
-    return;
-  end if;
-end;
-$;
-
--- ── Crear usuarios de prueba ─────────────────────────────────────────────────
-select tests.create_test_user('ADMIN')                as admin_id \gset
-select tests.create_test_user('ANALISTA')             as analista_id \gset
-select tests.create_test_user('JEFE_TECNICA_CALIDAD') as jtc_id \gset
-
--- ── Crear un reporte borrador como ANALISTA ──────────────────────────────────
-select tests.set_role_context('ANALISTA', :'analista_id');
-
-insert into public.reports (prepared_by, status, created_by, updated_by)
-values (:'analista_id'::uuid, 'DRAFT', :'analista_id'::uuid, :'analista_id'::uuid)
+select tests.set_role_context('ANALISTA', :'analyst_id');
+set local role authenticated;
+insert into public.reports (prepared_by, status, client_id, created_by, updated_by)
+values (:'analyst_id'::uuid, 'DRAFT', '40000000-0000-0000-0000-000000000001',
+        :'analyst_id'::uuid, :'analyst_id'::uuid)
 returning id as report_id \gset
+insert into public.report_samples (report_id, sample_id)
+values (:'report_id'::uuid, '40000000-0000-0000-0000-000000000002');
 
--- ── Test 1: Analista no puede hacer transición directa a IN_REVIEW ───────────
--- Req 3.6
+-- Un analista no puede enviar el borrador a revisiÃ³n y el intento debe quedar auditado.
+select is((public.transition_report(:'report_id'::uuid, 'IN_REVIEW', null) ->> 'ok'), 'false',
+  'ANALISTA no puede enviar el reporte a revisiÃ³n');
+select ok(exists (
+  select 1 from public.audit_logs
+  where action = 'TRANSITION_REPORT_DENIED' and entity_id = :'report_id'::uuid
+), 'El intento denegado del analista queda auditado');
+
+-- El JTC avanza el flujo legÃ­timo hasta revisiÃ³n.
+select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'quality_lead_id');
+select public.transition_report(:'report_id'::uuid, 'VALIDATING', null);
+select public.transition_report(:'report_id'::uuid, 'READY_FOR_REVIEW', null);
+select public.transition_report(:'report_id'::uuid, 'IN_REVIEW', null);
+
+-- Quien preparÃ³ no puede aprobar ni emitir, aunque tenga el rol JTC.
+select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'analyst_id');
+select is((public.transition_report(:'report_id'::uuid, 'APPROVED', null) ->> 'ok'), 'false',
+  'El preparador no puede aprobar su propio reporte');
+select ok(exists (
+  select 1 from public.audit_logs
+  where action = 'TRANSITION_REPORT_DENIED' and entity_id = :'report_id'::uuid
+    and new_data ->> 'reason' = 'segregacion_preparador_aprobador'
+), 'El intento de aprobaciÃ³n por el preparador queda auditado');
+select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'quality_lead_id');
+select public.transition_report(:'report_id'::uuid, 'APPROVED', null);
+select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'analyst_id');
+select is((public.issue_report(:'report_id'::uuid) ->> 'ok'), 'false',
+  'El preparador no puede emitir su propio reporte');
+select ok(exists (
+  select 1 from public.audit_logs
+  where action = 'ISSUE_REPORT_DENIED' and entity_id = :'report_id'::uuid
+), 'El intento denegado de emisiÃ³n queda auditado');
+
+select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'quality_lead_id');
+select is((public.issue_report(:'report_id'::uuid) ->> 'ok'), 'true',
+  'Un JTC distinto del preparador puede emitir el reporte');
+select ok((select code ~ '^RSA-[0-9]+-[0-9]{4}$' and status = 'ISSUED'
+  from public.reports where id = :'report_id'::uuid),
+  'El reporte emitido tiene consecutivo RSA y estado ISSUED');
+
+select tests.set_role_context('ANALISTA', :'analyst_id');
+with updated as (
+  update public.reports set client_id = '40000000-0000-0000-0000-000000000099'
+  where id = :'report_id'::uuid returning id
+)
 select is(
-  (
-    select (public.transition_report(:'report_id'::uuid, 'IN_REVIEW', null)) ->> 'ok'
-  ),
-  'false',
-  'ANALISTA no puede mover el reporte a IN_REVIEW directamente'
-);
-
--- ── Test 2: Intento denegado queda registrado en audit_logs ─────────────────
--- Req 3.6
-select ok(
-  (
-    select count(*) > 0 from public.audit_logs
-    where action like '%DENIED%'
-      and entity_type = 'REPORT'
-      and entity_id = :'report_id'::uuid
-  ),
-  'Los intentos denegados quedan registrados en audit_logs'
-);
-
--- ── Test 3: Preparador del reporte no puede aprobarlo ───────────────────────
--- Req 3.6 — segregación: quien prepara no aprueba aunque tenga rol JTC
--- Forzar al analista al rol JTC temporalmente para verificar la segregación
-select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'analista_id');
-
--- Avanzar el reporte hasta APPROVED usando el JTC real
-select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'jtc_id');
--- Llevar el reporte de DRAFT a APPROVED paso a paso
-select public.transition_report(:'report_id'::uuid, 'VALIDATING');
-select public.transition_report(:'report_id'::uuid, 'READY_FOR_REVIEW');
-select public.transition_report(:'report_id'::uuid, 'IN_REVIEW');
-select public.transition_report(:'report_id'::uuid, 'APPROVED');
-
--- Ahora intentar aprobar como el preparador (analista_id tiene prepared_by)
--- Simular que el analista_id también tiene rol JTC (caso edge)
-select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'analista_id');
-
-select is(
-  (
-    select (public.issue_report(:'report_id'::uuid)) ->> 'ok'
-  ),
-  'false',
-  'El preparador del reporte no puede emitirlo (segregación)'
-);
-
--- ── Test 4: JTC puede emitir el reporte ─────────────────────────────────────
--- Req 3.6 — flujo correcto con JTC real
-select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'jtc_id');
-
-select is(
-  (
-    select (public.issue_report(:'report_id'::uuid)) ->> 'ok'
-  ),
-  'true',
-  'JEFE_TECNICA_CALIDAD puede emitir el reporte correctamente'
-);
-
--- ── Test 5: Reporte emitido tiene código RSA asignado ────────────────────────
-select ok(
-  (select code ~ '^RSA-[0-9]+-[0-9]{4}
- from public.reports where id = :'report_id'::uuid),
-  'El reporte emitido tiene código RSA con formato correcto'
-);
-
--- ── Test 6: No se puede modificar una fila de report_samples de reporte emitido
--- Req 3.7
-select throws_ok(
-  format(
-    $q$
-      insert into public.report_samples (report_id, sample_id)
-      values (%L::uuid, gen_random_uuid())
-    $q$,
-    :'report_id'
-  ),
-  '42501',
-  'No se pueden agregar muestras a un reporte ISSUED'
-);
-
--- ── Test 7: El snapshot del reporte emitido no puede modificarse ─────────────
--- Req 3.7 — report_snapshots no tiene UPDATE ni DELETE
-select is(
-  (
-    select count(*)::int
-    from pg_policies
-    where schemaname = 'public'
-      and tablename = 'report_snapshots'
-      and cmd in ('UPDATE', 'DELETE')
-  ),
+  (select count(*)::int from updated),
   0,
-  'report_snapshots no debe tener políticas UPDATE ni DELETE'
+  'El analista no puede modificar un reporte emitido'
 );
+select throws_ok(format(
+  'insert into public.report_samples (report_id, sample_id) values (%L::uuid, %L::uuid)',
+  :'report_id', '40000000-0000-0000-0000-000000000003'), '42501', null,
+  'No se pueden agregar filas a un reporte emitido');
+select ok(
+  (select bool_and(
+    not has_table_privilege('authenticated', format('public.%I', relation_name), 'UPDATE')
+    and not has_table_privilege('authenticated', format('public.%I', relation_name), 'DELETE')
+  ) from unnest(array[
+    'reports', 'report_samples', 'report_results', 'report_regulation_columns',
+    'report_reviews', 'report_approvals', 'report_snapshots', 'report_files'
+  ]) as relation_name),
+  'Un reporte emitido y sus filas relacionadas no permiten UPDATE ni DELETE directos');
 
 select * from finish();
 rollback;
+\else
+begin;
+select plan(1);
+select skip('El mÃ³dulo RSA no existe en esta versiÃ³n');
+select * from finish();
+rollback;
+\endif

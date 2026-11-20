@@ -1,19 +1,19 @@
 # Tasks - K02
 
 - [x] 1. Estructura y ayudantes
-  - [ ] 1.1 Crear supabase/tests/database y el ayudante para simular usuarios por rol
+  - [x] 1.1 Crear supabase/tests/database y el ayudante para simular usuarios por rol
     - _Requirements: 2.1, 4.1_
-- [x] 2. Reglas globales
+- [ ] 2. Reglas globales
   - [ ] 2.1 RLS activo en todas las tablas public
     - _Requirements: 1.1_
   - [ ] 2.2 Sin politicas permisivas de escritura; search_path en security definer; vistas security_invoker; buckets privados
     - _Requirements: 1.2, 1.3, 1.4, 1.5_
-- [x] 3. Roles y auditoria
+- [ ] 3. Roles y auditoria
   - [ ] 3.1 Matriz de acceso por rol para las tablas existentes
     - _Requirements: 2.1_
-  - [ ] 3.2 Auto-asignacion de roles y audit_logs inmutable
+  - [x] 3.2 Auto-asignacion de roles y audit_logs inmutable
     - _Requirements: 2.2, 2.3_
-- [x] 4. Reglas de dominio (cada una con skip si el modulo no existe)
+- [ ] 4. Reglas de dominio (cada una con skip si el modulo no existe)
   - [ ] 4.1 Codigo de muestra, mediciones, contactos de cotizacion, consecutivos
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 4.2_
   - [ ] 4.2 Versionado de ensayos, segregacion y emision, inmutabilidad

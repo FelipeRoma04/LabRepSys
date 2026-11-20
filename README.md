@@ -45,7 +45,7 @@ La clave anon está diseñada para uso en el cliente. No pongas claves `service_
 - [Respaldo y restauración](./docs/RESPALDO.md)
 - [Accesibilidad](./docs/ACCESIBILIDAD.md)
 
-Para validar localmente antes de publicar, ejecutar `npm test`, `npm run lint` y `npm run build`. Las pruebas pgTAP requieren Docker local o un proyecto Supabase dedicado; ver [supabase/tests/database/README.md](./supabase/tests/database/README.md). No ejecutar pruebas SQL contra producción.
+Para validar localmente antes de publicar, ejecutar `npm test`, `npm run lint` y `npm run build`. Las pruebas pgTAP requieren Docker local o un proyecto Supabase dedicado; ver [supabase/tests/README.md](./supabase/tests/README.md). No ejecutar pruebas SQL contra producción.
 
 ## Supabase
 

@@ -1,4 +1,5 @@
 -- p03: Clientes, contactos y cotizaciones.
+\ir 000_helpers.psql
 begin;
 
 select plan(5);
@@ -13,6 +14,7 @@ select ok(
 select tests.create_test_user('ADMIN') as admin_id \gset
 select tests.create_test_user('COMERCIAL') as commercial_id \gset
 select tests.set_role_context('ADMIN', :'admin_id');
+set local role authenticated;
 
 insert into public.app_settings (key, value, description)
 values ('document.format.COT', to_jsonb('COT-NNNN-AAAA'::text), 'Formato de prueba')

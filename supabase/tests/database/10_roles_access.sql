@@ -1,110 +1,89 @@
--- K02: Matriz de acceso por rol y reglas de auditoría
--- Req 2.1, 2.2, 2.3
-
+-- K02: Acceso a catÃ¡logos, privilegios por rol y protecciÃ³n de auditorÃ­a.
+\ir 000_helpers.psql
 begin;
-select plan(6);
+select plan(22);
 
--- ── Test 1: Usuario inactivo no puede leer profiles ──────────────────────────
--- Req 2.1
-do $$
-declare v_id uuid;
-begin
-  v_id := tests.create_test_user('ANALISTA', false); -- inactivo
-  perform tests.set_role_context('ANALISTA', v_id);
-end;
-$$;
+-- Fixture creado por el usuario de migraciones antes de aplicar el rol funcional.
+insert into public.matrices (code, name) values ('K02-ACCESS', 'Fixture de acceso');
 
-select is(
-  (select count(*)::int from public.profiles),
-  0,
-  'Usuario inactivo no debe ver registros en profiles'
-);
+select tests.create_test_user('ADMIN') as admin_id \gset
+select tests.create_test_user('ADMIN_TECNICO') as admin_tecnico_id \gset
+select tests.create_test_user('COMERCIAL') as comercial_id \gset
+select tests.create_test_user('MUESTREO') as muestreo_id \gset
+select tests.create_test_user('RECEPCION') as recepcion_id \gset
+select tests.create_test_user('ANALISTA') as analista_id \gset
+select tests.create_test_user('JEFE_TECNICA_CALIDAD') as jtc_id \gset
+select tests.create_test_user('AUDITOR') as auditor_id \gset
+select tests.create_test_user('ANALISTA', false) as inactive_id \gset
+select tests.create_test_user('NO_ROLE') as no_role_id \gset
 
--- Restaurar contexto al rol de prueba con ADMIN activo para el resto
-do $$
-declare v_id uuid;
-begin
-  v_id := tests.create_test_user('ADMIN', true);
-  perform tests.set_role_context('ADMIN', v_id);
-end;
-$$;
+set local role authenticated;
 
--- ── Test 2: Usuario sin rol activo no puede leer tablas de catálogos ─────────
--- Req 2.1
-do $$
-declare v_id uuid;
-begin
-  v_id := tests.create_test_user('NO_ROLE', true);
-  perform tests.set_role_context('NO_ROLE', v_id);
-end;
-$$;
+select tests.set_role_context('ANALISTA', :'inactive_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 0,
+  'Un usuario inactivo no puede leer catÃ¡logos');
 
-select is(
-  (select count(*)::int from public.matrices),
-  0,
-  'Usuario activo sin rol no debe ver registros de matrices'
-);
+select tests.set_role_context('NO_ROLE', :'no_role_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 0,
+  'Un usuario activo sin rol no puede leer catÃ¡logos');
 
--- ── Test 3: ANALISTA no puede insertar en matrices ───────────────────────────
--- Req 2.1
-do $$
-declare v_id uuid;
-begin
-  v_id := tests.create_test_user('ANALISTA', true);
-  perform tests.set_role_context('ANALISTA', v_id);
-end;
-$$;
+select tests.set_role_context('ADMIN', :'admin_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'ADMIN puede leer matrices');
+select tests.set_role_context('ADMIN_TECNICO', :'admin_tecnico_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'ADMIN_TECNICO puede leer matrices');
+select tests.set_role_context('COMERCIAL', :'comercial_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'COMERCIAL puede leer matrices');
+select tests.set_role_context('MUESTREO', :'muestreo_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'MUESTREO puede leer matrices');
+select tests.set_role_context('RECEPCION', :'recepcion_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'RECEPCION puede leer matrices');
+select tests.set_role_context('ANALISTA', :'analista_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'ANALISTA puede leer matrices');
+select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'jtc_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'JEFE_TECNICA_CALIDAD puede leer matrices');
+select tests.set_role_context('AUDITOR', :'auditor_id');
+select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'AUDITOR puede leer matrices');
 
-select throws_ok(
-  $$insert into public.matrices (code, name) values ('TEST-RLS', 'Test RLS')$$,
-  'new row violates row-level security policy for table "matrices"',
-  'ANALISTA no debe poder insertar en matrices'
-);
+select tests.set_role_context('ADMIN', :'admin_id');
+select lives_ok($$insert into public.matrices (code, name) values ('K02-ADMIN-WRITE', 'ADMIN')$$,
+  'ADMIN puede crear matrices');
+select tests.set_role_context('ADMIN_TECNICO', :'admin_tecnico_id');
+select throws_ok($$insert into public.matrices (code, name) values ('K02-AT-WRITE', 'ADMIN_TECNICO')$$,
+  '42501', null, 'ADMIN_TECNICO no puede crear matrices');
+select tests.set_role_context('COMERCIAL', :'comercial_id');
+select throws_ok($$insert into public.matrices (code, name) values ('K02-COM-WRITE', 'COMERCIAL')$$,
+  '42501', null, 'COMERCIAL no puede crear matrices');
+select tests.set_role_context('MUESTREO', :'muestreo_id');
+select throws_ok($$insert into public.matrices (code, name) values ('K02-MUE-WRITE', 'MUESTREO')$$,
+  '42501', null, 'MUESTREO no puede crear matrices');
+select tests.set_role_context('RECEPCION', :'recepcion_id');
+select throws_ok($$insert into public.matrices (code, name) values ('K02-REC-WRITE', 'RECEPCION')$$,
+  '42501', null, 'RECEPCION no puede crear matrices');
+select tests.set_role_context('ANALISTA', :'analista_id');
+select throws_ok($$insert into public.matrices (code, name) values ('K02-ANA-WRITE', 'ANALISTA')$$,
+  '42501', null, 'ANALISTA no puede crear matrices');
+select tests.set_role_context('JEFE_TECNICA_CALIDAD', :'jtc_id');
+select throws_ok($$insert into public.matrices (code, name) values ('K02-JTC-WRITE', 'JTC')$$,
+  '42501', null, 'JEFE_TECNICA_CALIDAD no puede crear matrices');
+select tests.set_role_context('AUDITOR', :'auditor_id');
+select throws_ok($$insert into public.matrices (code, name) values ('K02-AUD-WRITE', 'AUDITOR')$$,
+  '42501', null, 'AUDITOR no puede crear matrices');
 
--- ── Test 4: audit_logs no acepta UPDATE de ningún usuario funcional ──────────
--- Req 2.3 — verificar que no existe política UPDATE para authenticated
-select is(
-  (
-    select count(*)::int
-    from pg_policies
-    where schemaname = 'public'
-      and tablename = 'audit_logs'
-      and cmd = 'UPDATE'
-  ),
-  0,
-  'audit_logs no debe tener política UPDATE para usuarios funcionales'
-);
+select tests.set_role_context('ANALISTA', :'analista_id');
+select throws_ok($$insert into public.user_roles (user_id, role_code, assigned_by)
+  values (auth.uid(), 'ADMIN', auth.uid())$$, '42501', null,
+  'Un usuario funcional no puede asignarse roles');
 
--- ── Test 5: audit_logs no acepta DELETE de ningún usuario funcional ──────────
--- Req 2.3
-select is(
-  (
-    select count(*)::int
-    from pg_policies
-    where schemaname = 'public'
-      and tablename = 'audit_logs'
-      and cmd = 'DELETE'
-  ),
-  0,
-  'audit_logs no debe tener política DELETE para usuarios funcionales'
-);
+select tests.set_role_context('ANALISTA', :'inactive_id');
+update public.profiles set active = true where id = auth.uid();
+select is((select active from public.profiles where id = auth.uid()), false,
+  'Un usuario no puede activar su propio perfil');
 
--- ── Test 6: Ningún usuario puede asignarse roles propios por INSERT directo ───
--- Req 2.2 — RLS impide insertar user_roles directamente para otro usuario
-do $$
-declare v_analista uuid;
-begin
-  v_analista := tests.create_test_user('ANALISTA', true);
-  perform tests.set_role_context('ANALISTA', v_analista);
-end;
-$$;
-
-select throws_ok(
-  $$insert into public.user_roles (user_id, role_code, assigned_by)
-    select auth.uid(), 'ADMIN', auth.uid()$$,
-  null,
-  'Un ANALISTA no debe poder asignarse el rol ADMIN directamente'
-);
+select tests.set_role_context('ANALISTA', :'analista_id');
+select throws_ok($$update public.audit_logs set action = action where false$$, '42501', null,
+  'Usuarios funcionales no tienen permiso UPDATE en audit_logs');
+select throws_ok($$delete from public.audit_logs where false$$, '42501', null,
+  'Usuarios funcionales no tienen permiso DELETE en audit_logs');
 
 select * from finish();
 rollback;
