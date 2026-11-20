@@ -21,27 +21,17 @@ import {
   uploadTemplateAsset,
   type TemplateRow,
 } from '../services/templateEditor'
-import { EMPTY_TEMPLATE_CONFIG, DEFAULT_RESULT_COLUMNS } from '../types/templateConfig'
+import {
+  EMPTY_TEMPLATE_CONFIG,
+  getUnsupportedPaginationWarnings,
+  mergeTemplateConfig,
+  validateTemplateConfigForSave,
+  validateTemplateConfigSchema,
+} from '../types/templateConfig'
 import type { TemplateConfig, ResultTableColumn } from '../types/templateConfig'
 
 // ─── Validación ───────────────────────────────────────────────────────────────
 
-interface ValidationErrors {
-  [field: string]: string
-}
-
-function validateConfig(cfg: TemplateConfig): ValidationErrors {
-  const errors: ValidationErrors = {}
-  if (!cfg.header.organizationName.trim())
-    errors['header.organizationName'] = 'El nombre de la organización es obligatorio.'
-  if (!cfg.header.laboratoryName.trim())
-    errors['header.laboratoryName'] = 'El nombre del laboratorio es obligatorio.'
-  if (!cfg.header.templateCode.trim())
-    errors['header.templateCode'] = 'El código de plantilla es obligatorio.'
-  if (cfg.resultColumns.filter((c) => c.visible).length === 0)
-    errors['resultColumns'] = 'Al menos una columna debe ser visible.'
-  return errors
-}
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -62,10 +52,16 @@ export function TemplateEditorPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveOk, setSaveOk] = useState(false)
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [tab, setTab] = useState<TabKey>('encabezado')
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const secondaryLogoInputRef = useRef<HTMLInputElement>(null)
   const sigInputRef = useRef<HTMLInputElement>(null)
+
+  const orderedColumns = useMemo(
+    () => [...config.resultColumns].sort((left, right) => left.order - right.order),
+    [config.resultColumns],
+  )
 
   const isDraft = template?.status === 'DRAFT'
   const isReadOnly = !isDraft || !isAdmin
@@ -85,13 +81,14 @@ export function TemplateEditorPage() {
           setLoadError('Plantilla no encontrada.')
           return
         }
+        const mergedConfig = mergeTemplateConfig(found.configuration)
+        const schemaErrors = validateTemplateConfigSchema(mergedConfig)
+        if (Object.keys(schemaErrors).length) {
+          setLoadError('La configuración guardada no cumple el esquema de plantilla.')
+          return
+        }
         setTemplate(found)
-        // Merge con defaults para tolerar configuraciones parciales
-        setConfig({
-          ...EMPTY_TEMPLATE_CONFIG,
-          ...(found.configuration ?? {}),
-          resultColumns: (found.configuration?.resultColumns ?? DEFAULT_RESULT_COLUMNS),
-        })
+        setConfig(mergedConfig)
       })
       .catch((e: unknown) => {
         if (!cancelled) setLoadError(e instanceof Error ? e.message : 'Error al cargar.')
@@ -109,7 +106,7 @@ export function TemplateEditorPage() {
   // ── Guardar ─────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     if (!id || !isDraft) return
-    const errors = validateConfig(config)
+    const errors = validateTemplateConfigForSave(config)
     setValidationErrors(errors)
     if (Object.keys(errors).length > 0) return
 
@@ -181,6 +178,17 @@ export function TemplateEditorPage() {
     }
   }, [id])
 
+  const handleSecondaryLogoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !id) return
+    try {
+      const path = await uploadTemplateAsset(id, 'secondary_logo', file)
+      setConfig((c) => ({ ...c, header: { ...c.header, secondaryLogoPath: path } }))
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'Error al subir el logo secundario.')
+    }
+  }, [id])
+
   const handleSigUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !id) return
@@ -194,10 +202,12 @@ export function TemplateEditorPage() {
 
   // ── Validar capacidades de impresión en preview ──────────────────────────────
   const previewWarnings = useMemo(() => {
-    if (tab !== 'preview' || !config.pagination.repeatTableHeader) return []
-    if (CSS.supports('break-inside', 'avoid')) return []
-    return ['Este navegador puede no soportar la regla de paginación "evitar corte de filas".']
-  }, [tab, config.pagination.repeatTableHeader])
+    if (tab !== 'preview') return []
+    const supports = typeof CSS !== 'undefined' && typeof CSS.supports === 'function'
+      ? CSS.supports.bind(CSS)
+      : () => false
+    return getUnsupportedPaginationWarnings(config.pagination, supports)
+  }, [tab, config.pagination])
 
   // ── Toggle columna ───────────────────────────────────────────────────────────
   const toggleColumn = (key: string) => {
@@ -207,6 +217,16 @@ export function TemplateEditorPage() {
         col.key === key ? { ...col, visible: !col.visible } : col
       ),
     }))
+  }
+
+  const moveColumn = (index: number, offset: -1 | 1) => {
+    setConfig((current) => {
+      const columns = [...current.resultColumns].sort((a, b) => a.order - b.order)
+      const target = index + offset
+      if (target < 0 || target >= columns.length) return current
+      ;[columns[index], columns[target]] = [columns[target], columns[index]]
+      return { ...current, resultColumns: columns.map((column, order) => ({ ...column, order })) }
+    })
   }
 
   if (loading) return <LoadingState message="Cargando plantilla…" />
@@ -331,6 +351,13 @@ export function TemplateEditorPage() {
               )}
               <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => void handleLogoUpload(e)} />
             </label>
+            <label>
+              Logo secundario (opcional)
+              {config.header.secondaryLogoPath && (
+                <p className="asset-path">Ruta actual: <code>{config.header.secondaryLogoPath}</code></p>
+              )}
+              <input ref={secondaryLogoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => void handleSecondaryLogoUpload(e)} />
+            </label>
           </fieldset>
         </form>
       )}
@@ -375,7 +402,7 @@ export function TemplateEditorPage() {
             <span className="field-error">{validationErrors['resultColumns']}</span>
           )}
           <ul className="column-toggle-list">
-            {config.resultColumns.map((col: ResultTableColumn) => (
+            {orderedColumns.map((col: ResultTableColumn, index) => (
               <li key={col.key}>
                 <label>
                   <input
@@ -386,6 +413,10 @@ export function TemplateEditorPage() {
                   />
                   {col.label}
                 </label>
+                <div className="column-order-actions">
+                  <button aria-label={`Mover ${col.label} arriba`} disabled={isReadOnly || index === 0} onClick={() => moveColumn(index, -1)} type="button">Subir</button>
+                  <button aria-label={`Mover ${col.label} abajo`} disabled={isReadOnly || index === orderedColumns.length - 1} onClick={() => moveColumn(index, 1)} type="button">Bajar</button>
+                </div>
               </li>
             ))}
           </ul>
@@ -427,7 +458,7 @@ export function TemplateEditorPage() {
               />
             </label>
             <label>
-              Imagen de firma (bucket signatures)
+              Imagen de firma (bucket privado template-assets)
               {config.signature.signatureImagePath && (
                 <p className="asset-path">Ruta actual: <code>{config.signature.signatureImagePath}</code></p>
               )}
@@ -442,6 +473,26 @@ export function TemplateEditorPage() {
         <form className="template-form" onSubmit={(e) => e.preventDefault()}>
           <fieldset disabled={isReadOnly}>
             <legend>Reglas de paginación</legend>
+            <label>
+              Iniciar sección en página nueva
+              <select
+                value={config.pagination.breakBeforeSection ?? ''}
+                onChange={(e) => setConfig((c) => ({
+                  ...c,
+                  pagination: {
+                    ...c.pagination,
+                    breakBeforeSection: e.target.value
+                      ? e.target.value as 'results' | 'declarations' | 'signatures'
+                      : undefined,
+                  },
+                }))}
+              >
+                <option value="">No agregar salto</option>
+                <option value="results">Resultados</option>
+                <option value="declarations">Declaraciones</option>
+                <option value="signatures">Firmas</option>
+              </select>
+            </label>
             <label>
               <input
                 type="checkbox"
@@ -490,17 +541,20 @@ export function TemplateEditorPage() {
               <p><strong>Fecha de muestreo:</strong> 29/05/2026</p>
             </section>
 
-            <div aria-label="Resultados de análisis" className="report-table-scroll" role="region" tabIndex={0}><table className="rsa-results-table"><caption className="visually-hidden">Vista previa de resultados del reporte</caption>
-              <thead>
+            <div aria-label="Resultados de análisis" className="report-table-scroll" role="region" tabIndex={0}><table
+              className="rsa-results-table"
+              style={{ breakBefore: config.pagination.breakBeforeSection === 'results' ? 'page' : undefined }}
+            ><caption className="visually-hidden">Vista previa de resultados del reporte</caption>
+              <thead style={{ display: config.pagination.repeatTableHeader ? 'table-header-group' : 'table-row-group' }}>
                 <tr>
-                  {config.resultColumns.filter((c) => c.visible).map((col) => (
+                  {orderedColumns.filter((c) => c.visible).map((col) => (
                     <th key={col.key} scope="col">{col.label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  {config.resultColumns.filter((c) => c.visible).map((col) => (
+                <tr style={{ breakInside: config.pagination.avoidRowBreak ? 'avoid' : 'auto' }}>
+                  {orderedColumns.filter((c) => c.visible).map((col) => (
                     <td key={col.key}>{col.key === 'result' ? '< 0,040' : 'DEMO'}</td>
                   ))}
                 </tr>
@@ -509,8 +563,13 @@ export function TemplateEditorPage() {
 
             <footer className="rsa-footer">
               <p>{config.texts.footer || '—'}</p>
-              <p>{config.texts.samplesOnlyDeclaration || ''}</p>
-              <div className="rsa-signature">
+              <p style={{ breakBefore: config.pagination.breakBeforeSection === 'declarations' ? 'page' : undefined }}>
+                {config.texts.samplesOnlyDeclaration || ''}
+              </p>
+              <div
+                className="rsa-signature"
+                style={{ breakBefore: config.pagination.breakBeforeSection === 'signatures' ? 'page' : undefined }}
+              >
                 <p>{config.signature.signerTitle || '—'}</p>
                 <p>{config.signature.signerNamePlaceholder || '—'}</p>
               </div>

@@ -419,13 +419,11 @@ export function CatalogPage({ table }: CatalogPageProps) {
               Abrir editor
             </Link>
           )}
-          {canManage && (
+          {canManage && selectedTable !== 'report_templates' && (
             <>
-              {selectedTable !== 'report_templates' && (
-                <button type="button" onClick={() => openEdit(row)}>
-                  {selectedTable === 'tests' ? 'Nueva versión' : 'Editar'}
-                </button>
-              )}
+              <button type="button" onClick={() => openEdit(row)}>
+                {selectedTable === 'tests' ? 'Nueva versión' : 'Editar'}
+              </button>
               <button type="button" onClick={() => void toggleActive(row)}>
                 {row.active === true ? 'Inactivar' : 'Activar'}
               </button>

@@ -110,6 +110,9 @@ export async function uploadTemplateAsset(
   file: File,
 ): Promise<string> {
   const client = requireSupabase()
+  if (!['image/png', 'image/jpeg', 'image/svg+xml'].includes(file.type)) {
+    throw new Error('El archivo debe ser una imagen PNG, JPEG o SVG.')
+  }
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
   const path = `${templateId}/${assetType}_${crypto.randomUUID()}_${safeName}`
 
