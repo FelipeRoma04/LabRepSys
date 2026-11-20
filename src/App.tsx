@@ -32,6 +32,7 @@ import { AdministrationPage } from './pages/AdministrationPage'
 import { AuditPage } from './pages/AuditPage'
 import { MigrationAssistantPage } from './pages/MigrationAssistantPage'
 import type { ReportStatus } from './types/reports'
+import { SearchPage } from './features/search/SearchPage'
 import type { CatalogTable } from './types/catalogs'
 
 const catalogRoutes: Record<string, CatalogTable> = {
@@ -69,6 +70,7 @@ function navigationPage(path: string, title: string) {
   if (path === '/administracion') return <AdministrationPage />
   if (path === '/auditoria') return <AuditPage />
   if (path === '/administracion/migracion') return <MigrationAssistantPage />
+  if (path === '/buscar') return <SearchPage />
   if (path === '/clientes') return <ClientsPage />
   if (path === '/cotizaciones') return <QuotesPage />
   if (path === '/muestras/recepcion') return <ReceptionPage />

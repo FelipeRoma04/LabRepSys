@@ -13,6 +13,7 @@ export interface NavigationGroup {
 
 export const navigationGroups: NavigationGroup[] = [
   { label: 'Inicio', items: [{ label: 'Inicio', path: '/' }] },
+  { label: 'Búsqueda', items: [{ label: 'Búsqueda global', path: '/buscar' }] },
   {
     label: 'Comercial',
     items: [
