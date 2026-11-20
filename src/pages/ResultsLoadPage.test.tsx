@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResultsLoadPage } from './ResultsLoadPage'
+import ihaFixture from '../lib/adapters/__fixtures__/iha.txt?raw'
 
 const mocks = vi.hoisted(() => ({
   roles: [{ code: 'ANALISTA', name: 'Analista' }],
@@ -16,6 +17,12 @@ const mocks = vi.hoisted(() => ({
   saveResultImport: vi.fn(),
   storageUpload: vi.fn(),
   storageRemove: vi.fn(),
+  extractPdfText: vi.fn(),
+}))
+
+// jsdom no ejecuta el worker de pdfjs: se simula la extracción de texto
+vi.mock('../lib/pdfText', () => ({
+  extractPdfText: mocks.extractPdfText,
 }))
 
 vi.mock('../hooks/useAuth', () => ({
@@ -92,6 +99,7 @@ describe('carga de resultados', () => {
     mocks.confirmImportRow.mockResolvedValue('result-1')
     mocks.storageUpload.mockResolvedValue({ error: null })
     mocks.storageRemove.mockResolvedValue({ error: null })
+    mocks.extractPdfText.mockResolvedValue({ text: '', pageCount: 1, hasText: false })
   })
 
   it('guarda una captura manual sin alias, exige mapear el ensayo y conserva el operador y original', async () => {
@@ -184,7 +192,7 @@ describe('carga de resultados', () => {
     await user.selectOptions(screen.getByLabelText('Laboratorio del informe'), 'lab-1')
     await user.click(screen.getByRole('tab', { name: 'Desde PDF' }))
     fireEvent.change(screen.getByLabelText('Seleccionar PDF original'), { target: { files: [pdf] } })
-    await screen.findByText(/adaptadores AGQ, Chemilab e IHA son stubs/)
+    await screen.findByText(/No se extrajeron filas automáticamente/)
     await user.type(screen.getByLabelText('Parámetro externo'), 'Parámetro sin alias')
     await user.type(screen.getByLabelText('Resultado original'), '7,2')
     await user.click(screen.getByRole('button', { name: 'Guardar PDF y filas' }))
@@ -202,6 +210,88 @@ describe('carga de resultados', () => {
     expect(mocks.findDuplicateImport).toHaveBeenCalledTimes(2)
     expect(mocks.saveResultImport).toHaveBeenCalledTimes(1)
     expect(mocks.storageUpload).toHaveBeenCalledTimes(1)
+  })
+
+  it('precarga filas desde un PDF reconocido y no guarda nada hasta que el analista lo pide', async () => {
+    const user = userEvent.setup()
+    mocks.findDuplicateImport.mockResolvedValue(null)
+    mocks.extractPdfText.mockResolvedValue({ text: ihaFixture.replace(/\r\n/g, '\n'), pageCount: 1, hasText: true })
+    vi.stubGlobal('crypto', {
+      subtle: { digest: vi.fn().mockResolvedValue(new ArrayBuffer(32)) },
+      randomUUID: () => '00000000-0000-4000-8000-000000000002',
+    })
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:result-pdf'),
+      revokeObjectURL: vi.fn(),
+    })
+    const pdf = new File(['pdf content'], 'iha.pdf', { type: 'application/pdf' })
+    vi.spyOn(pdf, 'arrayBuffer').mockResolvedValue(new ArrayBuffer(10))
+
+    renderPage()
+    await screen.findByRole('option', { name: /AG0101/ })
+    await user.selectOptions(screen.getByLabelText('Muestra'), 'sample-1')
+    await user.selectOptions(screen.getByLabelText('Laboratorio del informe'), 'lab-1')
+    await user.click(screen.getByRole('tab', { name: 'Desde PDF' }))
+    fireEvent.change(screen.getByLabelText('Seleccionar PDF original'), { target: { files: [pdf] } })
+
+    expect(await screen.findByText(/1 fila\(s\) leídas del PDF/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Parámetro externo')).toHaveValue('DEMANDA BIOQUÍMICA DE OXÍGENO')
+    expect(screen.getByLabelText('Resultado original')).toHaveValue('<10')
+    expect(screen.getByLabelText('Incertidumbre recibida')).toHaveValue('9,64%')
+    expect(screen.getByText('Página 1 del PDF')).toBeInTheDocument()
+    expect(screen.getByText(/Marca del laboratorio: \(A\) \(\*\)/)).toBeInTheDocument()
+    expect(screen.getByText(/Advertencias para revisar/)).toBeInTheDocument()
+    expect(mocks.saveResultImport).not.toHaveBeenCalled()
+    expect(mocks.confirmImportRow).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Guardar PDF y filas' }))
+    await waitFor(() => expect(mocks.saveResultImport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source_type: 'PDF',
+        adapter_code: 'IHA',
+        adapter_version: 'OP-R-24-V-14',
+        raw_payload: expect.objectContaining({ adapter: 'IHA' }),
+      }),
+      [expect.objectContaining({
+        external_parameter: 'DEMANDA BIOQUÍMICA DE OXÍGENO',
+        external_result: '<10',
+        external_uncertainty: '9,64%',
+        external_lcm: 10,
+        external_technique: 'FOTOMETRÍA',
+        analysis_start: '2026-06-01T00:00:00-05:00',
+        analysis_end: '2026-06-07T00:00:00-05:00',
+        mapping_status: 'UNMAPPED',
+        validation_messages: expect.arrayContaining(['Página 1 del PDF', 'Marca del laboratorio: (A) (*)']),
+      })],
+    ))
+    expect(mocks.confirmImportRow).not.toHaveBeenCalled()
+  })
+
+  it('un PDF ilegible no rompe la pantalla y deja la captura manual', async () => {
+    const user = userEvent.setup()
+    mocks.findDuplicateImport.mockResolvedValue(null)
+    mocks.extractPdfText.mockRejectedValue(new Error('Invalid PDF structure'))
+    vi.stubGlobal('crypto', {
+      subtle: { digest: vi.fn().mockResolvedValue(new ArrayBuffer(32)) },
+      randomUUID: () => '00000000-0000-4000-8000-000000000003',
+    })
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:result-pdf'),
+      revokeObjectURL: vi.fn(),
+    })
+    const pdf = new File(['basura'], 'danado.pdf', { type: 'application/pdf' })
+    vi.spyOn(pdf, 'arrayBuffer').mockResolvedValue(new ArrayBuffer(10))
+
+    renderPage()
+    await screen.findByRole('option', { name: /AG0101/ })
+    await user.selectOptions(screen.getByLabelText('Muestra'), 'sample-1')
+    await user.selectOptions(screen.getByLabelText('Laboratorio del informe'), 'lab-1')
+    await user.click(screen.getByRole('tab', { name: 'Desde PDF' }))
+    fireEvent.change(screen.getByLabelText('Seleccionar PDF original'), { target: { files: [pdf] } })
+
+    expect(await screen.findByText(/No se pudo leer el texto del PDF/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Parámetro externo')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Guardar PDF y filas' })).toBeInTheDocument()
   })
 
   it('no presenta controles de escritura a AUDITOR', async () => {

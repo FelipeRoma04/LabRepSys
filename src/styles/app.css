@@ -1350,6 +1350,47 @@
   opacity: 0.6;
 }
 
+.result-pdf-extraction {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.result-pdf-extraction h2,
+.result-pdf-extraction h3 {
+  color: #344452;
+  font-size: 1rem;
+}
+
+.result-pdf-document-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.result-pdf-document-info dt {
+  font-size: 0.8rem;
+  color: #5b6b78;
+}
+
+.result-pdf-document-info dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.result-row-origin {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
+}
+
+.result-row-notes {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+}
+
 .result-import-review code {
   overflow-wrap: anywhere;
 }
