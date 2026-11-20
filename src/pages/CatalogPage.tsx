@@ -577,7 +577,7 @@ export function CatalogPage({ table }: CatalogPageProps) {
       {error && <ErrorState message={error} />}
       {notice && <p className="catalog-notice" role="status">{notice}</p>}
       {importErrors && importErrors.length > 0 && (
-        <section className="catalog-import-errors" aria-label="Errores de importación">
+        <section className="catalog-import-errors" aria-label="Errores de importación" role="alert">
           <h2>Filas no importadas</h2>
           <ul>
             {importErrors.map((item) => (

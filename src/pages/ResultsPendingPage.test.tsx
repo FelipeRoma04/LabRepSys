@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ResultsPendingPage } from './ResultsPendingPage'
+import { getAxeViolations } from './a11yTestUtils'
 
 const mocks = vi.hoisted(() => ({
   roles: [] as { code: string; name: string }[],
@@ -19,6 +20,19 @@ vi.mock('./PendingExternalReportsPage', () => ({
 }))
 
 describe('pestañas de resultados pendientes', () => {
+  it('mantiene navegación por flechas y no presenta violaciones axe', async () => {
+    mocks.roles = [{ code: 'ANALISTA', name: 'Analista' }]
+    const { container } = render(<main><ResultsPendingPage /></main>)
+
+    const resultsTab = screen.getByRole('tab', { name: 'Ensayos sin resultado' })
+    const externalTab = screen.getByRole('tab', { name: 'Reportes externos' })
+    fireEvent.keyDown(resultsTab, { key: 'ArrowRight' })
+    expect(externalTab).toHaveFocus()
+    expect(externalTab).toHaveAttribute('aria-selected', 'true')
+    fireEvent.keyDown(externalTab, { key: 'ArrowRight' })
+    expect(resultsTab).toHaveFocus()
+    expect(await getAxeViolations(container)).toEqual([])
+  })
   it('muestra solo reportes externos a RECEPCION, sin consultar resultados sujetos a otro RLS', () => {
     mocks.roles = [{ code: 'RECEPCION', name: 'Recepción' }]
     render(<ResultsPendingPage />)

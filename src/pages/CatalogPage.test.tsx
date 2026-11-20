@@ -8,6 +8,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CatalogPage } from './CatalogPage'
 import { catalogDefinitions, type CatalogTable } from '../types/catalogs'
+import { getAxeViolations } from './a11yTestUtils'
 
 const mocks = vi.hoisted(() => ({
   roles: [{ code: 'ADMIN', name: 'Administrador' }],
@@ -47,6 +48,12 @@ describe('Catálogos', () => {
     mocks.createTestVersion.mockResolvedValue(undefined)
     mocks.updateCatalogRecord.mockResolvedValue(undefined)
     mocks.setCatalogRecordActive.mockResolvedValue(undefined)
+  })
+
+  it('no presenta violaciones axe en la lista de ensayos', async () => {
+    const { container } = render(<main><CatalogPage table="tests" /></main>)
+    await screen.findByRole('heading', { level: 1 })
+    expect(await getAxeViolations(container)).toEqual([])
   })
 
   it('crea un registro y vuelve a consultar los datos persistidos', async () => {

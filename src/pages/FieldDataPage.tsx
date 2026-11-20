@@ -418,7 +418,7 @@ export function FieldDataPage() {
               {coordinates.state === 'INVALID' &&
                 <p className="fielddata-error" role="alert">Coordenada inválida o fuera de rango: latitud −90 a 90 y longitud −180 a 180.</p>}
               {coordinates.state === 'NORMALIZED' &&
-                <p className="fielddata-coordinate-result">Coordenadas decimales: {coordinates.latitude.value}, {coordinates.longitude.value}</p>}
+                <p className="fielddata-coordinate-result" role="status">Coordenadas decimales: {coordinates.latitude.value}, {coordinates.longitude.value}</p>}
               <label>Notas de campo
                 <textarea
                   onChange={(event) => setFieldData((current) => ({ ...current, notes: event.target.value }))}
@@ -539,7 +539,7 @@ export function FieldDataPage() {
                           <div>
                             <strong>{attachment.file_name}</strong>
                             <span>{attachmentTypes.find((item) => item.value === attachment.attachment_type)?.label ?? attachment.attachment_type} · {formatFileSize(attachment.file_size)} · SHA-256 {attachment.sha256}</span>
-                            {attachment.withdrawn && <span className="fielddata-warning">Retirado: {attachment.withdrawn_reason}</span>}
+                            {attachment.withdrawn && <span className="fielddata-warning" role="status">Retirado: {attachment.withdrawn_reason}</span>}
                           </div>
                           {!attachment.withdrawn && <div className="fielddata-attachment-actions">
                             <button onClick={() => void requestDownload(attachment)} type="button">Preparar descarga</button>

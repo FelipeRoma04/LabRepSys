@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ExternalShipmentsPage } from './ExternalShipmentsPage'
 import type { ExternalShipmentOptions } from '../types/externalShipments'
+import { getAxeViolations } from './a11yTestUtils'
 
 const mocks = vi.hoisted(() => ({
   roles: [{ code: 'RECEPCION', name: 'Recepción' }],
@@ -86,6 +87,12 @@ describe('envíos a laboratorios externos', () => {
       }],
     })
     mocks.cancelExternalShipment.mockResolvedValue(undefined)
+  })
+
+  it('no presenta violaciones axe en la lista de envíos', async () => {
+    const { container } = render(<main><MemoryRouter><ExternalShipmentsPage /></MemoryRouter></main>)
+    await screen.findByRole('heading', { level: 1 })
+    expect(await getAxeViolations(container)).toEqual([])
   })
 
   it('estructura un envío con varios ensayos y muestra advertencias sin bloquear', async () => {
