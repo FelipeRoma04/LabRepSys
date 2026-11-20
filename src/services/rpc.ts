@@ -10,7 +10,7 @@
  * exactamente los parámetros definidos por su firma SQL.
  */
 import { supabase } from '../lib/supabase'
-import { logClientError, newCorrelationId as genId } from '../lib/logging'
+import { logClientError, newCorrelationId as genId, sanitize } from '../lib/logging'
 
 interface RpcCallResult<T> {
   data: T | null
@@ -32,12 +32,22 @@ export async function callRpc<T = unknown>(
   if (!supabase) {
     return {
       data: null,
-      error: new Error('La conexión con Supabase no está configurada.'),
+      error: new Error(`La conexión con Supabase no está configurada. (Referencia: ${cid})`),
       correlationId: cid,
     }
   }
 
-  const { data, error } = await supabase.rpc(fnName, params)
+  let response: Awaited<ReturnType<typeof supabase.rpc>>
+  try {
+    response = await supabase.rpc(fnName, params)
+      .setHeader('x-correlation-id', cid)
+  } catch (cause: unknown) {
+    const message = sanitize(cause instanceof Error ? cause.message : 'No se pudo completar la operación.')
+    await logClientError({ route: `rpc:${fnName}`, error: cause, correlationId: cid })
+    return { data: null, error: new Error(`${message} (Referencia: ${cid})`), correlationId: cid }
+  }
+
+  const { data, error } = response
 
   if (error) {
     await logClientError({
@@ -45,7 +55,11 @@ export async function callRpc<T = unknown>(
       error,
       correlationId: cid,
     })
-    return { data: null, error: new Error(error.message), correlationId: cid }
+    return {
+      data: null,
+      error: new Error(`${sanitize(error.message)} (Referencia: ${cid})`),
+      correlationId: cid,
+    }
   }
 
   return { data: data as T, error: null, correlationId: cid }

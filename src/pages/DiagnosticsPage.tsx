@@ -53,26 +53,35 @@ const deniedColumns: DataTableColumn<DeniedAttemptRow>[] = [
 
 type TabKey = 'errors' | 'denied'
 
+function sevenDaysAgoDate(): string {
+  const date = new Date()
+  date.setDate(date.getDate() - 7)
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return localDate.toISOString().slice(0, 10)
+}
+
 export function DiagnosticsPage() {
   const { roles } = useAuth()
+  const canViewDiagnostics = roles.some((role) => ['ADMIN', 'ADMIN_TECNICO'].includes(role.code))
   const canReadDenied = roles.some((role) =>
-    ['ADMIN', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'].includes(role.code),
+    ['ADMIN', 'ADMIN_TECNICO'].includes(role.code),
   )
   const [tab, setTab] = useState<TabKey>('errors')
 
   // Filtros
   const [filterRoute, setFilterRoute] = useState('')
   const [filterCorrelation, setFilterCorrelation] = useState('')
-  const [filterFrom, setFilterFrom] = useState('')
+  const [filterFrom, setFilterFrom] = useState(sevenDaysAgoDate)
 
   // Datos
   const [errorLogs, setErrorLogs] = useState<ErrorLogRow[]>([])
   const [deniedAttempts, setDeniedAttempts] = useState<DeniedAttemptRow[]>([])
+  const [failedImportCount, setFailedImportCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   const fetchErrors = useCallback(async () => {
-    if (!supabase) return
+    if (!supabase || !canViewDiagnostics) return
     setLoading(true)
     setLoadError(null)
     try {
@@ -84,7 +93,7 @@ export function DiagnosticsPage() {
 
       if (filterRoute.trim()) q = q.ilike('route', `%${filterRoute.trim()}%`)
       if (filterCorrelation.trim()) q = q.eq('correlation_id', filterCorrelation.trim())
-      if (filterFrom.trim()) q = q.gte('created_at', new Date(filterFrom).toISOString())
+      if (filterFrom.trim()) q = q.gte('created_at', new Date(`${filterFrom}T00:00:00`).toISOString())
 
       const { data, error } = await q
       if (error) throw error
@@ -94,7 +103,7 @@ export function DiagnosticsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterRoute, filterCorrelation, filterFrom])
+  }, [filterRoute, filterCorrelation, filterFrom, canViewDiagnostics])
 
   const fetchDenied = useCallback(async () => {
     if (!supabase || !canReadDenied) return
@@ -114,13 +123,29 @@ export function DiagnosticsPage() {
     }
   }, [canReadDenied])
 
+  const fetchFailedImportCount = useCallback(async () => {
+    if (!supabase || !canViewDiagnostics) return
+    const { data, error } = await supabase.rpc('diagnostic_failed_import_count')
+    if (error) {
+      setLoadError(error.message)
+      return
+    }
+    setFailedImportCount(Number(data ?? 0))
+  }, [canViewDiagnostics])
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      if (!canViewDiagnostics) return
       if (tab === 'errors') void fetchErrors()
       else if (canReadDenied) void fetchDenied()
+      void fetchFailedImportCount()
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [tab, fetchErrors, fetchDenied, canReadDenied])
+  }, [tab, fetchErrors, fetchDenied, fetchFailedImportCount, canReadDenied, canViewDiagnostics])
+
+  if (!canViewDiagnostics) {
+    return <ErrorState title="Acceso denegado" message="Solo ADMIN y ADMIN_TECNICO pueden consultar el diagnóstico." />
+  }
 
   return (
     <div>
@@ -128,6 +153,12 @@ export function DiagnosticsPage() {
         title="Diagnóstico del sistema"
         description="Errores de cliente e intentos denegados de los últimos 7 días."
       />
+
+      <dl className="diagnostics-counts" aria-label="Conteos de los últimos siete días">
+        <div><dt>Errores de cliente</dt><dd>{errorLogs.length}</dd></div>
+        <div><dt>Importaciones fallidas</dt><dd>{failedImportCount}</dd></div>
+        <div><dt>Intentos denegados cargados</dt><dd>{deniedAttempts.length}</dd></div>
+      </dl>
 
       {/* Pestañas */}
       <div className="tabs" role="tablist">

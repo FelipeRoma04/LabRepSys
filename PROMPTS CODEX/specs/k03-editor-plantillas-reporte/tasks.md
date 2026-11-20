@@ -1,20 +1,20 @@
 # Tasks - K03
 
 - [x] 1. Contrato
-  - [ ] 1.1 Definir TemplateConfig y su esquema de validacion
+  - [x] 1.1 Definir TemplateConfig y su esquema de validacion
     - _Requirements: 1.2, 4.1_
 - [x] 2. Base de datos (migracion nueva)
-  - [ ] 2.1 Columnas de aprobacion, bucket template-assets y politicas
+  - [x] 2.1 Columnas de aprobacion, bucket template-assets y politicas
     - _Requirements: 1.3, 2.2_
-  - [ ] 2.2 Trigger de inmutabilidad en APPROVED y RPC approve_template / new_template_version con auditoria
+  - [x] 2.2 Trigger de inmutabilidad en APPROVED y RPC approve_template / new_template_version con auditoria
     - _Requirements: 2.2, 2.3, 4.2_
 - [x] 3. Editor
-  - [ ] 3.1 Formulario por secciones con validacion por campo
+  - [x] 3.1 Formulario por secciones con validacion por campo
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 3.2 Subida de logos y firma al bucket privado
+  - [x] 3.2 Subida de logos y firma al bucket privado
     - _Requirements: 1.3_
 - [x] 4. Flujo de estados
-  - [ ] 4.1 Aprobar, nueva version, retirar; filtrar solo APPROVED para el constructor de RSA
+  - [x] 4.1 Aprobar, nueva version, retirar; filtrar solo APPROVED para el constructor de RSA
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 - [x] 5. Vista previa con datos DEMO y marca BORRADOR, con aviso de limitaciones
   - _Requirements: 3.1, 3.2_

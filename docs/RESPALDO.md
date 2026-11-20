@@ -1,6 +1,8 @@
 # Plan de Respaldo — LabRepSys
 
-> **Última revisión:** 2026-10-17  
+Estado de validacion: el flujo de backup esta implementado; la restauracion a un proyecto vacio sigue pendiente de ejecutar y documentar. No se considera probada hasta registrar evidencia de una restauracion aislada.
+
+> **Última revisión:** 2026-10-20
 > **Estado:** Procedimiento base establecido. RPO/RTO pendientes de definición (DP-016).
 
 ---
@@ -11,6 +13,7 @@
 ---
 
 ## Alcance del respaldo
+
 
 | Componente | Método | Responsable |
 |------------|--------|-------------|
@@ -25,6 +28,8 @@
 ---
 
 ## Procedimiento de respaldo de base de datos
+
+> Restauracion en proyecto vacio: **pendiente de ejecutar y documentar**. Hasta completar la prueba aislada, el procedimiento no se considera validado.
 
 ### Prerrequisitos
 
@@ -49,6 +54,8 @@ El script genera en `$BACKUP_DIR/<timestamp>/`:
 - `data.sql` — Datos de todas las tablas `public`
 - `checksums.sha256` — Hashes SHA-256 de ambos archivos
 - `metadata.json` — Metadatos del respaldo
+
+Por defecto, el destino es `../LabRepSys-backups`, fuera del repositorio. El script aplica permisos privados del usuario (`umask 077`) y aborta si `BACKUP_DIR` apunta dentro del repositorio.
 
 ### Verificar integridad del respaldo
 
@@ -116,10 +123,14 @@ npx supabase db dump --schema storage --data-only --file storage-objects-meta.sq
 npx supabase link --project-ref <proyecto-de-prueba>
 npx supabase db push
 
-# 3. Restaurar los datos
+# 3. Verificar que el respaldo no este corrupto
+cd /ruta/backup/<timestamp>
+sha256sum -c checksums.sha256
+
+# 4. Restaurar los datos
 psql "<connection-string-del-proyecto-prueba>" -f /ruta/backup/<timestamp>/data.sql
 
-# 4. Verificar integridad
+# 5. Verificar integridad
 # - Contar registros en tablas principales
 # - Verificar que los roles están presentes en public.roles
 # - Verificar que los perfiles tienen sus roles asignados

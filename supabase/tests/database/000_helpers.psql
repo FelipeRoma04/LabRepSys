@@ -1,5 +1,8 @@
 -- K02: Ayudantes comunes para simular usuarios por rol en pgTAP
--- Uso: SELECT tests.set_role_context('ADMIN', '<uuid>');
+-- Uso: SELECT tests.set_role_context('ADMIN', '<uuid>'); SET LOCAL ROLE authenticated;
+
+create schema if not exists tests;
+grant usage on schema tests to authenticated;
 
 -- Simula un usuario autenticado con un rol específico dentro de la transacción.
 -- Siempre hacer ROLLBACK al finalizar el bloque de prueba para no persistir datos.
@@ -17,9 +20,11 @@ begin
     'sub', user_id::text,
     'role', 'authenticated'
   )::text, true);
-  set local role authenticated;
 end;
 $$;
+
+grant execute on function tests.set_role_context(text, uuid) to authenticated;
+revoke execute on function tests.set_role_context(text, uuid) from public, anon;
 
 -- Crea un perfil de prueba activo con el rol indicado dentro de la transacción.
 create or replace function tests.create_test_user(
@@ -55,3 +60,5 @@ begin
   return v_user_id;
 end;
 $$;
+
+revoke execute on function tests.create_test_user(text, boolean) from public, anon, authenticated;

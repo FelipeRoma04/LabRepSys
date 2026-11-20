@@ -2868,9 +2868,50 @@
 .report-sample h3 {
   margin-top: 0;
 }
+.column-order-actions {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin-left: 0.75rem;
+}
 
+.column-order-actions button {
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+.template-preview-warnings {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #b7791f;
+  background: #fff8e7;
+}
 @media print {
   .report-table-scroll {
     overflow: visible;
   }
+}
+
+.diagnostics-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.diagnostics-counts div {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.diagnostics-counts dt {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.diagnostics-counts dd {
+  margin: 0.3rem 0 0;
+  font-size: 1.4rem;
+  font-weight: 700;
 }

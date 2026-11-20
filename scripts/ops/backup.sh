@@ -13,7 +13,7 @@
 #   chmod +x scripts/ops/backup.sh
 #   SUPABASE_PROJECT_REF=<ref> \
 #   SUPABASE_ACCESS_TOKEN=<token> \
-#   BACKUP_DIR=./backups \
+#   BACKUP_DIR=../LabRepSys-backups \
 #   bash scripts/ops/backup.sh
 #
 # SEGURIDAD
@@ -26,11 +26,21 @@
 # =============================================================================
 
 set -euo pipefail
+umask 077
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 : "${SUPABASE_PROJECT_REF:?Variable SUPABASE_PROJECT_REF no configurada}"
 : "${SUPABASE_ACCESS_TOKEN:?Variable SUPABASE_ACCESS_TOKEN no configurada}"
-BACKUP_DIR="${BACKUP_DIR:-./backups}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+BACKUP_DIR="${BACKUP_DIR:-${REPO_ROOT}/../LabRepSys-backups}"
+mkdir -p "${BACKUP_DIR}"
+BACKUP_DIR="$(cd "${BACKUP_DIR}" && pwd -P)"
+case "${BACKUP_DIR}/" in
+  "${REPO_ROOT}/"*)
+    echo "ERROR: BACKUP_DIR debe estar fuera del repositorio para evitar subir datos confidenciales." >&2
+    exit 1
+    ;;
+esac
 TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
 BACKUP_PATH="${BACKUP_DIR}/${TIMESTAMP}"
 
@@ -40,7 +50,7 @@ echo "  Proyecto : ${SUPABASE_PROJECT_REF}"
 echo "  Destino  : ${BACKUP_PATH}"
 echo "════════════════════════════════════════════════════════"
 
-mkdir -p "${BACKUP_PATH}"
+mkdir "${BACKUP_PATH}"
 
 # ── 1. Autenticar CLI y vincular proyecto ─────────────────────────────────────
 echo ""

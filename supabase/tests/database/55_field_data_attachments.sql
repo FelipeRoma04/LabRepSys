@@ -1,7 +1,8 @@
 -- p05: datos de campo, adjuntos y segregación de acceso.
+\ir 000_helpers.psql
 begin;
 
-select plan(11);
+select plan(12);
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.field_parameters'::regclass)
@@ -80,6 +81,7 @@ select id as conductivity_parameter_id
   from public.field_parameters
  where code = 'conductivity' \gset
 select tests.set_role_context('MUESTREO', :'sampler_id'::uuid);
+set local role authenticated;
 
 select ok(
   (public.save_sample_field_data(
@@ -139,10 +141,18 @@ select ok(
 );
 
 reset role;
+select throws_ok(
+  $$insert into public.sample_field_measurements
+    (sample_id, field_parameter_id, value_state, numeric_value)
+    select '55000000-0000-0000-0000-000000000002', id, 'NOT_REPORTED', 1
+      from public.field_parameters where code = 'ph'$$,
+  '23514', null,
+  'Un estado distinto de VALUE rechaza un valor numÃ©rico');
 update public.samples
    set status = 'RECEIVED'
  where id = '55000000-0000-0000-0000-000000000002';
 select tests.set_role_context('MUESTREO', :'sampler_id'::uuid);
+set local role authenticated;
 
 select throws_ok(
   $$

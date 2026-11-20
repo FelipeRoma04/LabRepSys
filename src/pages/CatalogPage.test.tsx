@@ -151,6 +151,8 @@ describe('Catálogos', () => {
 
     const editLink = await screen.findByRole('link', { name: 'Abrir editor' })
     expect(editLink).toHaveAttribute('href', '/catalogos/plantillas/template-1/editar')
+    expect(screen.queryByRole('button', { name: 'Inactivar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Activar' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Crear registro' }))
     type(screen.getByLabelText(/Código/), 'RSA')
