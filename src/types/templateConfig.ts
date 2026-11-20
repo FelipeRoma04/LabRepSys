@@ -61,7 +61,7 @@ export interface TextsConfig {
 
 /** Sección de firma */
 export interface SignatureConfig {
-  /** Ruta a imagen de firma en bucket signatures (mecanismo provisional, DP-012) */
+  /** Ruta a imagen de firma en bucket privado template-assets (mecanismo provisional, DP-012) */
   signatureImagePath?: string
   signerTitle: string
   signerNamePlaceholder: string
@@ -131,4 +131,163 @@ export const EMPTY_TEMPLATE_CONFIG: TemplateConfig = {
     repeatTableHeader: true,
     avoidRowBreak: true,
   },
+}
+
+export type TemplateConfigErrors = Record<string, string>
+
+type UnknownRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string'
+}
+
+function isAssetPath(value: unknown): boolean {
+  return value === undefined || (
+    isString(value) &&
+    value.trim().length > 0 &&
+    !/^data:/i.test(value) &&
+    !/base64/i.test(value)
+  )
+}
+
+/** Merge partial persisted JSON with defaults while preserving malformed values for validation. */
+export function mergeTemplateConfig(input: unknown): TemplateConfig {
+  if (!isRecord(input)) return structuredClone(EMPTY_TEMPLATE_CONFIG)
+
+  const mergeSection = <T extends object>(defaults: T, value: unknown): T => (
+    value === undefined ? { ...defaults } : isRecord(value) ? { ...defaults, ...value } as T : value as T
+  )
+
+  return {
+    ...EMPTY_TEMPLATE_CONFIG,
+    ...input,
+    header: mergeSection(EMPTY_TEMPLATE_CONFIG.header, input.header),
+    texts: mergeSection(EMPTY_TEMPLATE_CONFIG.texts, input.texts),
+    signature: mergeSection(EMPTY_TEMPLATE_CONFIG.signature, input.signature),
+    pagination: mergeSection(EMPTY_TEMPLATE_CONFIG.pagination, input.pagination),
+    resultColumns: input.resultColumns === undefined
+      ? DEFAULT_RESULT_COLUMNS.map((column) => ({ ...column }))
+      : input.resultColumns as ResultTableColumn[],
+  } as TemplateConfig
+}
+
+/** Runtime schema validation for JSON read from or written to report_templates.configuration. */
+export function validateTemplateConfigSchema(input: unknown): TemplateConfigErrors {
+  const errors: TemplateConfigErrors = {}
+  if (!isRecord(input)) return { configuration: 'La configuración debe ser un objeto.' }
+  if (input.schemaVersion !== 1) errors.schemaVersion = 'La versión de esquema no es compatible.'
+
+  const checkSection = (name: string, required: string[], optional: string[] = []) => {
+    const section = input[name]
+    if (!isRecord(section)) {
+      errors[name] = 'La sección debe ser un objeto.'
+      return
+    }
+    for (const key of required) {
+      if (!isString(section[key])) errors[`${name}.${key}`] = 'Debe ser texto.'
+    }
+    for (const key of optional) {
+      if (section[key] !== undefined && !isString(section[key])) errors[`${name}.${key}`] = 'Debe ser texto.'
+    }
+  }
+
+  checkSection('header', [
+    'organizationName', 'laboratoryName', 'templateCode', 'documentTypeLabel',
+  ], ['logoPath', 'secondaryLogoPath'])
+  checkSection('texts', [
+    'accreditationDeclaration', 'subcontractedNote', 'nonAccreditedNote',
+    'samplesOnlyDeclaration', 'footer',
+  ], ['additionalObservations'])
+  checkSection('signature', ['signerTitle', 'signerNamePlaceholder'], ['signatureImagePath'])
+
+  const header = isRecord(input.header) ? input.header : {}
+  const signature = isRecord(input.signature) ? input.signature : {}
+  for (const [path, value] of [
+    ['header.logoPath', header.logoPath],
+    ['header.secondaryLogoPath', header.secondaryLogoPath],
+    ['signature.signatureImagePath', signature.signatureImagePath],
+  ] as const) {
+    if (!isAssetPath(value)) errors[path] = 'Debe ser una ruta a un asset, no una imagen incrustada.'
+  }
+
+  if (!Array.isArray(input.resultColumns)) {
+    errors.resultColumns = 'Debe ser una lista de columnas.'
+  } else {
+    const keys = new Set<string>()
+    input.resultColumns.forEach((column, index) => {
+      const path = `resultColumns.${index}`
+      if (!isRecord(column)) {
+        errors[path] = 'La columna debe ser un objeto.'
+        return
+      }
+      if (!isString(column.key) || !column.key.trim()) errors[`${path}.key`] = 'La clave es obligatoria.'
+      else if (keys.has(column.key)) errors[`${path}.key`] = 'La clave de columna debe ser única.'
+      else keys.add(column.key)
+      if (!isString(column.label)) errors[`${path}.label`] = 'La etiqueta debe ser texto.'
+      if (typeof column.visible !== 'boolean') errors[`${path}.visible`] = 'Debe ser verdadero o falso.'
+      if (!Number.isInteger(column.order) || (column.order as number) < 0) {
+        errors[`${path}.order`] = 'El orden debe ser un entero no negativo.'
+      }
+    })
+  }
+
+  if (!Number.isInteger(input.maxLimitColumns) || ![1, 2, 3, 4].includes(input.maxLimitColumns as number)) {
+    errors.maxLimitColumns = 'El máximo de columnas debe estar entre 1 y 4.'
+  }
+
+  if (!isRecord(input.pagination)) {
+    errors.pagination = 'La paginación debe ser un objeto.'
+  } else {
+    if (typeof input.pagination.repeatTableHeader !== 'boolean') {
+      errors['pagination.repeatTableHeader'] = 'Debe ser verdadero o falso.'
+    }
+    if (typeof input.pagination.avoidRowBreak !== 'boolean') {
+      errors['pagination.avoidRowBreak'] = 'Debe ser verdadero o falso.'
+    }
+    const breakBeforeSection = input.pagination.breakBeforeSection
+    if (breakBeforeSection !== undefined && !['results', 'declarations', 'signatures'].includes(String(breakBeforeSection))) {
+      errors['pagination.breakBeforeSection'] = 'La sección de salto no es válida.'
+    }
+  }
+
+  return errors
+}
+
+/** Required fields are business validation; the schema itself permits blank legal copy. */
+export function validateTemplateConfigForSave(input: unknown): TemplateConfigErrors {
+  const errors = validateTemplateConfigSchema(input)
+  if (Object.keys(errors).length || !isRecord(input)) return errors
+  const header = input.header as UnknownRecord
+  for (const key of ['organizationName', 'laboratoryName', 'templateCode']) {
+    if (isString(header[key]) && !header[key].trim()) {
+      errors[`header.${key}`] = 'Este campo es obligatorio.'
+    }
+  }
+  if (Array.isArray(input.resultColumns) && !input.resultColumns.some(
+    (column) => isRecord(column) && column.visible === true,
+  )) {
+    errors.resultColumns = 'Al menos una columna debe estar visible.'
+  }
+  return errors
+}
+
+export function getUnsupportedPaginationWarnings(
+  pagination: PaginationRule,
+  supports: (property: string, value: string) => boolean,
+): string[] {
+  const warnings: string[] = []
+  if (pagination.avoidRowBreak && !supports('break-inside', 'avoid')) {
+    warnings.push('Este navegador puede no respetar la regla para evitar cortes entre filas.')
+  }
+  if (pagination.repeatTableHeader && !supports('display', 'table-header-group')) {
+    warnings.push('Este navegador puede no repetir el encabezado de la tabla al imprimir.')
+  }
+  if (pagination.breakBeforeSection && !supports('break-before', 'page')) {
+    warnings.push('Este navegador puede no iniciar la sección configurada en una página nueva.')
+  }
+  return warnings
 }
