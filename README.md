@@ -84,7 +84,7 @@ values (
 );
 ```
 
-Como alternativa a `npx supabase db push`, ejecuta los SQL de `supabase/migrations/` en orden en el SQL Editor y luego el contenido de `supabase/seed.sql`. Las reglas actuales de Storage y sus decisiones pendientes están descritas en [supabase/README.md](./supabase/README.md).
+Como alternativa a `npx supabase db push`, ejecuta los SQL de `supabase/migrations/` en orden en el SQL Editor y luego `supabase/seed.sql`. Para cargar los catálogos técnicos en orden, sigue [supabase/seed/README.md](./supabase/seed/README.md). Las reglas actuales de Storage y sus decisiones pendientes están descritas en [supabase/README.md](./supabase/README.md).
 
 ## Clientes y cotizaciones
 
