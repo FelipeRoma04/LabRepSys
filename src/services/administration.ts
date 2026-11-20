@@ -91,6 +91,25 @@ export async function saveAppSetting(key: string, value: unknown): Promise<void>
   if (error) throw error
 }
 
+/**
+ * Fija el último número ya usado de un consecutivo (p. ej. RSA 2026) para que el
+ * sistema continúe la numeración manual. Solo ADMIN; solo puede subir el valor.
+ */
+export async function setCounterFloor(counterCode: string, periodYear: number, lastValue: number): Promise<number> {
+  if (!counterCode.trim()) throw new Error('Indique el consecutivo.')
+  if (!Number.isInteger(periodYear) || periodYear < 2000 || periodYear > 2100) throw new Error('Año no válido.')
+  if (!Number.isInteger(lastValue) || lastValue < 0) throw new Error('El último número usado debe ser un entero mayor o igual a 0.')
+  const { data, error } = await db().rpc('set_counter_floor', {
+    p_counter_code: counterCode.trim(),
+    p_period_year: periodYear,
+    p_last_value: lastValue,
+  })
+  if (error) throw error
+  const next = (data as { next_value?: number } | null)?.next_value
+  if (typeof next !== 'number') throw new Error('Respuesta inesperada del servidor.')
+  return next
+}
+
 export async function listPendingDecisions(): Promise<PendingDecision[]> {
   const { data, error } = await db().from('pending_decisions')
     .select('id, code, topic, decision_required, suggested_owner, priority, status, decision_text, evidence')

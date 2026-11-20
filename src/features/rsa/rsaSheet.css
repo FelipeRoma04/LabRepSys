@@ -1,0 +1,151 @@
+/* Formato SA-OP-LAA-TEC-FOR.6.1. Hoja propia del RSA: no depende del rediseño de src/styles. */
+.rsa-format {
+  font-size: 0.82rem;
+  color: #111;
+}
+
+.rsa-format table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.rsa-format th,
+.rsa-format td {
+  border: 1px solid #555;
+  padding: 0.2rem 0.35rem;
+  vertical-align: middle;
+}
+
+.rsa-format-header {
+  display: grid;
+  grid-template-columns: 1fr auto minmax(14rem, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.rsa-format-org {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsa-format-title {
+  margin: 0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.rsa-format-control th {
+  font-weight: 400;
+  text-align: left;
+}
+
+.rsa-format-number {
+  margin: 0.6rem 0;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.rsa-format-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-bottom: 0.6rem;
+}
+
+.rsa-format-info caption,
+.rsa-format-results caption {
+  border: 1px solid #555;
+  border-bottom: 0;
+  background: #e5e5e5;
+  font-weight: 700;
+  padding: 0.2rem;
+}
+
+.rsa-format-info th {
+  width: 40%;
+  text-align: left;
+  font-weight: 600;
+}
+
+.rsa-format-results th,
+.rsa-format-results td {
+  text-align: center;
+}
+
+.rsa-format-results td:nth-child(2) {
+  text-align: left;
+}
+
+.rsa-format-group th {
+  background: #f3f3f3;
+  text-align: left;
+  font-weight: 600;
+}
+
+.rsa-format-legend,
+.rsa-format-small {
+  font-size: 0.72rem;
+}
+
+.rsa-format-observations {
+  border: 1px solid #555;
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.rsa-format-observations h2 {
+  font-size: 0.85rem;
+  margin: 0 0 0.3rem;
+}
+
+.rsa-format-observations ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.rsa-format-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.rsa-format-signature p {
+  margin: 0.1rem 0;
+}
+
+.rsa-format-end {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+.rsa-report-issues {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #b7791f;
+  background: #fff8e7;
+}
+
+.rsa-report-issues h2 {
+  font-size: 1rem;
+  margin: 0 0 0.4rem;
+}
+
+@media (max-width: 720px) {
+  .rsa-format-header,
+  .rsa-format-info {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .rsa-format {
+    font-size: 8pt;
+  }
+
+  .rsa-format-results thead {
+    display: table-header-group;
+  }
+
+  .rsa-format-results tr {
+    break-inside: avoid;
+  }
+}
