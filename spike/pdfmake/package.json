@@ -1,0 +1,9 @@
+{
+  "name": "spike-pdfmake-rsa",
+  "private": true,
+  "description": "Spike aislado (no se fusiona): PDF del RSA con pdfmake. Dependencias fuera del package.json de la app.",
+  "type": "module",
+  "dependencies": {
+    "pdfmake": "^0.2.20"
+  }
+}
