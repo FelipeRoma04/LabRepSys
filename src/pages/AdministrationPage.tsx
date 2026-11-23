@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
 import { PageHeader } from '../components/PageHeader'
+import { UserAdministration } from '../features/admin/UserAdministration'
 import { useAuth } from '../hooks/useAuth'
 import {
   assignRole, decidePendingDecision, listAdminProfiles, listAdminRoles,
@@ -79,31 +80,20 @@ export function AdministrationPage() {
     {error && <ErrorState message={error} />}
     {notice && <p className="notice notice-success" role="status">{notice}</p>}
     {loading ? <LoadingState message="Cargando administración…" /> : <>
-      {isAdmin && <section className="admin-section">
-        <h2>Usuarios y roles</h2>
-        <p>La invitación de usuarios se realiza desde Supabase Authentication. Aquí puedes activar cuentas y administrar roles.</p>
-        {profiles.map((user) => {
-          const userRoles = assigned.filter((item) => item.user_id === user.id)
-          return <details className="admin-user" key={user.id}>
-            <summary>{user.full_name || user.email || user.id} · {user.active ? 'Activo' : 'Inactivo'}</summary>
-            <p>{user.email || user.id}</p>
-            <button className="btn btn-secondary" disabled={saving || user.id === profile?.id} onClick={() => void mutate(
-              () => setProfileActive(user.id, !user.active), user.active ? 'Cuenta inactivada.' : 'Cuenta activada.',
-            )} type="button">{user.active ? 'Inactivar' : 'Activar'}</button>
-            <ul>{userRoles.map((item) => <li key={item.role_code}>{item.role_code}{user.id !== profile?.id && <button className="btn btn-secondary" disabled={saving} onClick={() => void mutate(() => removeRole(user.id, item.role_code), 'Rol retirado y auditado.')} type="button">Retirar</button>}</li>)}</ul>
-            {user.id !== profile?.id && <label>Asignar rol
-              <select defaultValue="" disabled={saving} onChange={(event) => {
-                const roleCode = event.target.value
-                if (roleCode && profile?.id) void mutate(() => assignRole(user.id, roleCode, profile.id), 'Rol asignado y auditado.')
-                event.target.value = ''
-              }}>
-                <option value="">Selecciona un rol</option>
-                {roles.filter((role) => !userRoles.some((item) => item.role_code === role.code)).map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}
-              </select>
-            </label>}
-          </details>
-        })}
-      </section>}
+      {isAdmin && <UserAdministration
+        assigned={assigned}
+        currentUserId={profile?.id}
+        onAssignRole={(user, roleCode) => {
+          if (profile?.id) void mutate(() => assignRole(user.id, roleCode, profile.id), 'Rol asignado y auditado.')
+        }}
+        onRemoveRole={(user, roleCode) => void mutate(() => removeRole(user.id, roleCode), 'Rol retirado y auditado.')}
+        onToggleActive={(user) => void mutate(
+          () => setProfileActive(user.id, !user.active), user.active ? 'Cuenta desactivada.' : 'Cuenta activada.',
+        )}
+        profiles={profiles}
+        roles={roles}
+        saving={saving}
+      />}
 
       {isAdmin && <section className="admin-section">
         <h2>Parámetros del sistema</h2>
