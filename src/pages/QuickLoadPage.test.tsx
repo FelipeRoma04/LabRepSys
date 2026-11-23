@@ -146,4 +146,29 @@ describe('Carga rápida', () => {
     expect(await screen.findByText('«Sodio» quedó guardado como alias para la próxima carga.')).toBeInTheDocument()
     expect(screen.getByText('Filas dudosas (0)')).toBeInTheDocument()
   })
+
+  it('en un informe de Chemilab con varias muestras pide la columna y la propone por código', async () => {
+    const user = userEvent.setup()
+    mocks.readPdf.mockResolvedValue({
+      ...reading('CHEMILAB', []),
+      result: {
+        rows: [],
+        requiresManualCapture: false,
+        sampleColumns: [
+          { label: 'Salida 1 AG0346', rows: [row('pH', '7,0')] },
+          { label: 'Salida 2 AG0347', rows: [row('pH', '8,0'), row('Sodio', '3')] },
+        ],
+      },
+    })
+    renderPage()
+
+    await user.selectOptions(await screen.findByLabelText('Muestra'), 's-1')
+    await user.upload(screen.getByLabelText('Elegir PDF'), new File(['%PDF'], 'chemilab.pdf', { type: 'application/pdf' }))
+
+    const column = await screen.findByLabelText('Columna de muestra en chemilab.pdf')
+    expect(column).toHaveValue('0')
+    await user.selectOptions(screen.getByLabelText('Laboratorio de chemilab.pdf'), 'lab-agq')
+    await user.selectOptions(column, '1')
+    expect(await screen.findByText('2 fila(s), 1 dudosa(s)', { exact: false })).toBeInTheDocument()
+  })
 })

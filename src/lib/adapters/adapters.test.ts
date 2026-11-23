@@ -202,10 +202,47 @@ describe('Chemilab', () => {
     expect(other.rows).toHaveLength(9)
   })
 
-  it('no adivina con varias muestras: captura manual', () => {
+  it('no adivina si el informe dice varias muestras pero la tabla trae una columna', () => {
     const multi = ChemilabAdapter.extract(chemilab.replace(/(Número total de muestras:\s+)1/g, '$12'))
     expect(multi.requiresManualCapture).toBe(true)
     expect(multi.rows).toEqual([])
+    expect(multi.sampleColumns).toBeUndefined()
+  })
+
+  describe('informe sintético con dos muestras (segunda columna agregada al fixture)', () => {
+    const DATA = /^\s*(\d{1,3})\s{2,}(\d{4}-\d{2}-\d{2})\s{2,}\S/
+    const lines = chemilab.replace(/(Número total de muestras:\s+)1/g, '$12').split('\n')
+    const width = Math.max(...lines.filter((line) => DATA.test(line)).map((line) => line.length)) + 8
+    const twoSamples = lines.map((line) => {
+      if (DATA.test(line)) return `${line.padEnd(width)}<9,99`
+      if (/Salida 1\s*$/.test(line)) return `${line.padEnd(width)}Salida 2`
+      if (/MD618744\s*$/.test(line)) return `${line.padEnd(width)}MD618745`
+      return line
+    }).join('\n')
+    const result = ChemilabAdapter.extract(twoSamples)
+
+    it('separa una columna de filas por muestra con su etiqueta', () => {
+      expect(result.requiresManualCapture).toBe(false)
+      expect(result.rows).toEqual([])
+      expect(result.sampleColumns?.map((column) => column.label)).toEqual(['Salida 1 MD618744', 'Salida 2 MD618745'])
+      expect(result.sampleColumns?.map((column) => column.rows.length)).toEqual([9, 9])
+      expect(result.warnings?.at(-1)).toMatch(/2 muestras/)
+    })
+
+    it('cada columna conserva su propio resultado y comparte parámetro, unidad y método', () => {
+      const [first, second] = result.sampleColumns ?? []
+      expect(first.rows[0]).toMatchObject({ externalResult: '0,473', uncertaintyText: '+/- 0,0344', externalUnit: 'mg/L' })
+      expect(second.rows[0]).toMatchObject({ externalResult: '<9,99', externalUnit: 'mg/L', methodText: first.rows[0].methodText })
+      expect(second.rows[0].externalParameter).toBe(first.rows[0].externalParameter)
+    })
+
+    it('liga las desviaciones del laboratorio en todas las columnas', () => {
+      const [first, second] = result.sampleColumns ?? []
+      const aoxFirst = first.rows.find((row) => /AOX/.test(row.externalParameter))
+      const aoxSecond = second.rows.find((row) => /AOX/.test(row.externalParameter))
+      expect(aoxFirst?.observations?.length).toBeGreaterThan(0)
+      expect(aoxSecond?.observations).toEqual(aoxFirst?.observations)
+    })
   })
 })
 

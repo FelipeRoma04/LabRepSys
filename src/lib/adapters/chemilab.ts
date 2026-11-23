@@ -9,7 +9,7 @@
  * Solo extrae texto: no interpreta, no convierte unidades, no normaliza incertidumbre.
  */
 import { registerAdapter } from '../pdfAdapter'
-import type { LabPdfAdapter, PdfExtractedRow, PdfExtractResult } from '../pdfAdapter'
+import type { LabPdfAdapter, PdfExtractedRow, PdfExtractResult, SampleColumn } from '../pdfAdapter'
 import {
   cellCenter,
   comparableName,
@@ -109,24 +109,20 @@ const ChemilabAdapter: LabPdfAdapter = {
     if (markedTypes.length) documentInfo['Tipo de muestra marcado'] = markedTypes.join(', ')
     if (detectedVersion) documentInfo['Versión del formato'] = detectedVersion
 
-    const sampleCount = Number(documentInfo['Número total de muestras'] ?? '1')
-    if (sampleCount > 1) {
-      return {
-        rows: [],
-        requiresManualCapture: true,
-        detectedFormatVersion: detectedVersion,
-        documentInfo,
-        warnings: [...warnings, `El informe trae ${sampleCount} muestras; el adaptador solo soporta una columna de muestra. Capture manualmente.`],
-      }
-    }
+    const sampleCount = Math.max(1, Number(documentInfo['Número total de muestras'] ?? '1') || 1)
 
-    const rows: PdfExtractedRow[] = []
+    // Una lista de filas por columna de muestra (con una sola muestra, una columna)
+    const columns: PdfExtractedRow[][] = Array.from({ length: sampleCount }, () => [])
+    const columnLabels: string[][] = Array.from({ length: sampleCount }, () => [])
+    const rows = columns[0]
     pages.forEach((lines, pageIndex) => {
       const headerIndex = lines.findIndex((line) => TABLE_HEADER.test(line))
       if (headerIndex < 0) return
       const header = lines[headerIndex]
       const parameterStart = header.search(/Par[aá]metro/)
       const parameterCenter = parameterStart + 'Parámetro'.length / 2
+      // Los resultados (una celda por muestra) empiezan a la derecha de la columna «Unidad»
+      const unitHeader = positionedCells(header).find((cell) => /^Unidad$/i.test(cell.text))
 
       const tableLines: TableLine[] = []
       let seenData = false
@@ -149,6 +145,19 @@ const ChemilabAdapter: LabPdfAdapter = {
       const dataLines = tableLines.filter((line) => line.kind === 'data')
       if (!dataLines.length) return
 
+      // Etiquetas de las columnas de muestra: texto del encabezado alineado con cada resultado
+      if (sampleCount > 1 && columnLabels.every((label) => !label.length)) {
+        const resultCells = positionedCells(dataLines[0].text).slice(-sampleCount)
+        const firstDataIndex = dataLines[0].index
+        for (let index = Math.max(0, headerIndex - 3); index < firstDataIndex; index += 1) {
+          for (const cell of positionedCells(lines[index])) {
+            const column = resultCells.findIndex((result) =>
+              Math.abs(cellCenter(result) - cellCenter(cell)) <= FRAGMENT_TOLERANCE)
+            if (column >= 0 && cell.start > parameterStart) columnLabels[column].push(cell.text)
+          }
+        }
+      }
+
       // Fragmentos entre filas de datos
       const gaps: string[][] = [[]]
       for (const line of tableLines) {
@@ -167,12 +176,15 @@ const ChemilabAdapter: LabPdfAdapter = {
       dataLines.forEach((dataLine, rowIndex) => {
         const cells = positionedCells(dataLine.text)
         const [itemCell, dateCell, ...rest] = cells
-        if (rest.length !== 5 && rest.length !== 6) {
+        // Método, técnica, LCM, unidad + una celda de resultado por muestra (+ nombre en línea)
+        const resultsRight = unitHeader ? rest.filter((cell) => cell.start > unitHeader.end).length : sampleCount
+        if ((rest.length !== 4 + sampleCount && rest.length !== 5 + sampleCount) || resultsRight !== sampleCount) {
           unrecognizedLines.push(dataLine.text.trim())
           return
         }
-        const inlineName = rest.length === 6 ? rest.shift()!.text : undefined
-        const [method, technique, lcm, unit, resultCell] = rest.map((cell) => cell.text)
+        const inlineName = rest.length === 5 + sampleCount ? rest.shift()!.text : undefined
+        const [method, technique, lcm, unit] = rest.slice(0, 4).map((cell) => cell.text)
+        const resultCells = rest.slice(4).map((cell) => cell.text)
         const { above, below } = distribution![rowIndex]
         const before = gaps[rowIndex]
         const after = gaps[rowIndex + 1]
@@ -182,22 +194,24 @@ const ChemilabAdapter: LabPdfAdapter = {
           ...after.slice(0, below),
         ]
         const { name, marker } = joinName(nameParts)
-        const withUncertainty = resultCell.match(RESULT_WITH_UNCERTAINTY)
         const date = isoDate(dateCell.text)
-        rows.push({
-          externalParameter: name,
-          externalResult: withUncertainty ? withUncertainty[1] : resultCell,
-          uncertaintyText: withUncertainty ? `${withUncertainty[2]} ${withUncertainty[3]}` : undefined,
-          externalUnit: unit,
-          lcmText: lcm,
-          methodText: method,
-          techniqueText: technique,
-          marker,
-          analysisStart: date,
-          analysisEnd: date,
-          sourcePage: pageIndex + 1,
-          observations: [],
-          rawLine: `${itemCell.text} ${dataLine.text.trim().slice(itemCell.text.length).trim()}`,
+        resultCells.forEach((resultCell, column) => {
+          const withUncertainty = resultCell.match(RESULT_WITH_UNCERTAINTY)
+          columns[column].push({
+            externalParameter: name,
+            externalResult: withUncertainty ? withUncertainty[1] : resultCell,
+            uncertaintyText: withUncertainty ? `${withUncertainty[2]} ${withUncertainty[3]}` : undefined,
+            externalUnit: unit,
+            lcmText: lcm,
+            methodText: method,
+            techniqueText: technique,
+            marker,
+            analysisStart: date,
+            analysisEnd: date,
+            sourcePage: pageIndex + 1,
+            observations: [],
+            rawLine: `${itemCell.text} ${dataLine.text.trim().slice(itemCell.text.length).trim()}`,
+          })
         })
       })
     })
@@ -227,8 +241,27 @@ const ChemilabAdapter: LabPdfAdapter = {
         documentObservations.push(paragraph)
         if (!/desviaci[oó]n/i.test(paragraph)) continue
         const linked = rows.filter((row) => mentionsRow(paragraph, row.externalParameter))
-        linked.forEach((row) => row.observations?.push(paragraph))
+        columns.flat()
+          .filter((row) => mentionsRow(paragraph, row.externalParameter))
+          .forEach((row) => row.observations?.push(paragraph))
         if (!linked.length) warnings.push(`Desviación declarada que no se pudo ligar a una fila: "${paragraph}"`)
+      }
+    }
+
+    if (sampleCount > 1) {
+      const sampleColumns: SampleColumn[] = columns.map((columnRows, index) => ({
+        label: columnLabels[index].join(' ').trim() || `Muestra ${index + 1}`,
+        rows: columnRows,
+      }))
+      return {
+        rows: [],
+        sampleColumns,
+        requiresManualCapture: false,
+        unrecognizedLines,
+        detectedFormatVersion: detectedVersion,
+        warnings: [...warnings, `El informe trae ${sampleCount} muestras. Use Carga rápida para asignar cada columna a su muestra.`],
+        documentInfo,
+        documentObservations,
       }
     }
 

@@ -11,6 +11,8 @@ import {
   matchAlias,
   normalizeName,
   remapRows,
+  rowsForSample,
+  suggestSampleColumn,
   toImportDraft,
 } from './quickLoad'
 
@@ -139,5 +141,26 @@ describe('carga rápida: alias aprendidos', () => {
     expect(updated[0].doubts).not.toContain('NO_ALIAS')
     expect(updated[1]).toMatchObject({ mappedTestId: 'test-na', mappedBy: 'ALIAS' })
     expect(updated[2]).toMatchObject({ mappedTestId: '', mappedBy: null })
+  })
+})
+
+describe('carga rápida: informes con varias muestras', () => {
+  const columns = [
+    { label: 'Salida 1 MD618744 AG0346', rows: [extracted({ externalResult: '1,1' })] },
+    { label: 'Salida 2 MD618745 AG 0347', rows: [extracted({ externalResult: '2,2' })] },
+  ]
+
+  it('propone la columna cuya etiqueta contiene el código de la muestra', () => {
+    expect(suggestSampleColumn(columns, 'AG0346')).toBe(0)
+    expect(suggestSampleColumn(columns, 'ag0347')).toBe(1)
+    expect(suggestSampleColumn(columns, 'AG0999')).toBeNull()
+    expect(suggestSampleColumn([...columns, { label: 'copia AG0346', rows: [] }], 'AG0346')).toBeNull()
+  })
+
+  it('carga solo las filas de la columna elegida', () => {
+    const result = { rows: [], requiresManualCapture: false, sampleColumns: columns }
+    expect(rowsForSample(result, null)).toEqual([])
+    expect(rowsForSample(result, 1)[0].externalResult).toBe('2,2')
+    expect(rowsForSample({ rows: [extracted({})], requiresManualCapture: false }, null)).toHaveLength(1)
   })
 })

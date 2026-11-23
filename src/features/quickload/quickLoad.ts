@@ -5,7 +5,7 @@
  * uno se asigna a su laboratorio por el adaptador que lo reconoce (canHandle),
  * cada fila se mapea al ensayo por alias y solo se muestran las filas dudosas.
  */
-import type { PdfExtractedRow } from '../../lib/pdfAdapter'
+import type { PdfExtractedRow, PdfExtractResult, SampleColumn } from '../../lib/pdfAdapter'
 import { parseResult } from '../../lib/parseResult'
 import type { ResultImportRowDraft, ResultLoadOptions } from '../../types/results'
 
@@ -65,7 +65,7 @@ export interface QuickRow {
 export function normalizeName(value: string): string {
   return value
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('es')
     .replace(/\s+/g, ' ')
     .trim()
@@ -213,6 +213,25 @@ export function applyLearnedAlias(
     if (row.mappedBy === 'USER' && row.mappedTestId !== alias.testId) return row
     return { ...row, mappedTestId: alias.testId, mappedBy: 'ALIAS', doubts }
   })
+}
+
+/**
+ * Informe con varias muestras: columna cuya etiqueta contiene el código de la
+ * muestra. Si ninguna o varias coinciden, la persona la elige.
+ */
+export function suggestSampleColumn(columns: SampleColumn[], sampleCode: string): number | null {
+  const code = normalizeName(sampleCode).replace(/\s/g, '')
+  if (!code) return null
+  const matches = columns
+    .map((column, index) => ({ index, label: normalizeName(column.label).replace(/\s/g, '') }))
+    .filter((column) => column.label.includes(code))
+  return matches.length === 1 ? matches[0].index : null
+}
+
+/** Filas a cargar del PDF: las de la columna elegida si el informe trae varias muestras */
+export function rowsForSample(result: PdfExtractResult, columnIndex: number | null): PdfExtractedRow[] {
+  if (!result.sampleColumns?.length) return result.rows
+  return columnIndex === null ? [] : result.sampleColumns[columnIndex]?.rows ?? []
 }
 
 export function isDoubtful(row: QuickRow): boolean {

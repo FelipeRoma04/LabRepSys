@@ -61,6 +61,18 @@ export interface PdfExtractResult {
   documentInfo?: Record<string, string>
   /** Observaciones del documento que no se pueden ligar a una fila */
   documentObservations?: string[]
+  /**
+   * Informes con varias muestras (una columna de resultado por muestra): filas
+   * separadas por columna. `rows` queda vacío y la persona elige qué columna
+   * corresponde a cada muestra (captura asistida en la carga rápida).
+   */
+  sampleColumns?: SampleColumn[]
+}
+
+export interface SampleColumn {
+  /** Etiqueta del laboratorio para la columna (p. ej. "Salida 1 MD618744") */
+  label: string
+  rows: PdfExtractedRow[]
 }
 
 /**

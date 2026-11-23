@@ -19,6 +19,8 @@ import {
   isDoubtful,
   isRowReady,
   remapRows,
+  rowsForSample,
+  suggestSampleColumn,
   type QuickRow,
 } from '../features/quickload/quickLoad'
 import {
@@ -38,6 +40,8 @@ interface QuickFile {
   reading: PdfReading | null
   laboratoryId: string
   labAutoDetected: boolean
+  /** Columna del informe (si trae varias muestras) que corresponde a la muestra */
+  columnIndex: number | null
   duplicate: boolean
   error: string | null
 }
@@ -98,6 +102,7 @@ export function QuickLoadPage() {
         reading: null,
         laboratoryId: '',
         labAutoDetected: false,
+        columnIndex: null,
         duplicate: false,
         error: null,
       } satisfies QuickFile
@@ -107,6 +112,10 @@ export function QuickLoadPage() {
     for (const item of pending) {
       const reading = await readPdf(item.file)
       const laboratoryId = detectLaboratoryId(reading.adapterId, options.laboratories) ?? ''
+      const sampleCode = options.samples.find((candidate) => candidate.id === sampleId)?.code ?? ''
+      const columnIndex = reading.result.sampleColumns
+        ? suggestSampleColumn(reading.result.sampleColumns, sampleCode)
+        : null
       let duplicate = false
       if (laboratoryId) {
         try {
@@ -116,12 +125,12 @@ export function QuickLoadPage() {
         }
       }
       setFiles((current) => current.map((candidate) => candidate.key === item.key
-        ? { ...candidate, reading, laboratoryId, labAutoDetected: Boolean(laboratoryId), duplicate }
+        ? { ...candidate, reading, laboratoryId, labAutoDetected: Boolean(laboratoryId), columnIndex, duplicate }
         : candidate))
       if (!duplicate) {
         setRows((current) => [
           ...current,
-          ...buildQuickRows(item.key, reading.result.rows, laboratoryId || null, options.aliases),
+          ...buildQuickRows(item.key, rowsForSample(reading.result, columnIndex), laboratoryId || null, options.aliases),
         ])
       }
     }
@@ -135,6 +144,18 @@ export function QuickLoadPage() {
     setRows((current) => [
       ...current.filter((row) => row.fileKey !== fileKey),
       ...remapRows(current.filter((row) => row.fileKey === fileKey), laboratoryId || null, options.aliases),
+    ])
+  }
+
+  const changeColumn = (fileKey: string, value: string) => {
+    if (!options) return
+    const file = files.find((item) => item.key === fileKey)
+    if (!file?.reading) return
+    const columnIndex = value === '' ? null : Number(value)
+    setFiles((current) => current.map((item) => item.key === fileKey ? { ...item, columnIndex } : item))
+    setRows((current) => [
+      ...current.filter((row) => row.fileKey !== fileKey),
+      ...buildQuickRows(fileKey, rowsForSample(file.reading!.result, columnIndex), file.laboratoryId || null, options.aliases),
     ])
   }
 
@@ -187,10 +208,12 @@ export function QuickLoadPage() {
   const includedRows = usableRows.filter((row) => !row.excluded)
   const stillReading = files.some((item) => !item.reading)
   const filesWithoutLab = files.filter((item) => item.reading && !item.duplicate && !item.laboratoryId
-    && item.reading.result.rows.length > 0)
+    && (item.reading.result.rows.length > 0 || Boolean(item.reading.result.sampleColumns?.length)))
+  const filesWithoutColumn = files.filter((item) => item.reading?.result.sampleColumns?.length
+    && !item.duplicate && item.columnIndex === null)
   const templateId = templates.length === 1 ? templates[0].id : null
   const canGenerate = Boolean(sample) && !saving && !stillReading && includedRows.length > 0
-    && pendingRows.length === 0 && filesWithoutLab.length === 0
+    && pendingRows.length === 0 && filesWithoutLab.length === 0 && filesWithoutColumn.length === 0
 
   const handleGenerate = async () => {
     if (!sample) return
@@ -292,7 +315,22 @@ export function QuickLoadPage() {
                             ? <StatusBadge label={`Formato ${item.reading.adapterName}`} tone="success" />
                             : <StatusBadge label="Formato no reconocido" tone="warning" />}
                           {item.duplicate && <StatusBadge label="Ya cargado para esta muestra" tone="neutral" />}
-                          {!item.duplicate && item.reading.result.rows.length > 0 && (
+                          {!item.duplicate && item.reading.result.sampleColumns && (
+                            <label>
+                              Columna de {sample?.code}
+                              <select
+                                aria-label={`Columna de muestra en ${item.file.name}`}
+                                value={item.columnIndex ?? ''}
+                                onChange={(event) => changeColumn(item.key, event.target.value)}
+                              >
+                                <option value="">Elige la columna del informe</option>
+                                {item.reading.result.sampleColumns.map((column, index) => (
+                                  <option key={column.label} value={index}>{column.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+                          {!item.duplicate && (item.reading.result.rows.length > 0 || item.reading.result.sampleColumns) && (
                             <label>
                               Laboratorio{item.labAutoDetected ? ' (detectado)' : ''}
                               <select
@@ -427,6 +465,7 @@ export function QuickLoadPage() {
               )}
               {pendingRows.length > 0 && <p role="status">Faltan {pendingRows.length} fila(s) dudosa(s) por resolver (elige el ensayo, confirma el texto o exclúyela).</p>}
               {filesWithoutLab.length > 0 && <p role="status">Elige el laboratorio de {filesWithoutLab.length} PDF.</p>}
+              {filesWithoutColumn.length > 0 && <p role="status">Elige la columna de la muestra en {filesWithoutColumn.length} informe(s) con varias muestras.</p>}
               <button type="button" disabled={!canGenerate} onClick={() => void handleGenerate()}>
                 {saving ? 'Generando…' : 'Generar borrador'}
               </button>

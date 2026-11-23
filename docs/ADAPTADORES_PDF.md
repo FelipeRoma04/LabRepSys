@@ -35,7 +35,7 @@ El adaptador **solo extrae texto**:
 - El resultado y la incertidumbre vienen en la misma celda (`0,473 +/- 0,0344`) y se separan sin cambiar el texto.
 - El asterisco de acreditación (`Fósforo total*`) pasa a `marker`.
 - Las "OBSERVACIONES ANALITICAS" que declaran una **desviación del método** se ligan a la fila cuando mencionan su nombre como palabra completa o su sigla entre paréntesis (`(AOX)`). En el informe de referencia aplican a AOX, Fósforo reactivo (ortofosfato), Nitratos y Nitritos. Si una desviación no se puede ligar a ninguna fila, se muestra un aviso.
-- Si "Número total de muestras" es mayor que 1, la extracción pasa a captura manual: solo se soporta una columna de muestra.
+- Si "Número total de muestras" es N > 1, cada línea de datos debe traer exactamente N celdas de resultado a la derecha de la columna «Unidad»; el adaptador devuelve una columna de filas por muestra (`sampleColumns`) con la etiqueta del encabezado (p. ej. «Salida 2 MD618745»). En **Carga rápida** se elige qué columna corresponde a la muestra (se propone sola si la etiqueta contiene su código). Si alguna línea no trae N resultados, se descarta y se avisa; nunca se adivina. **Validado solo con un informe sintético**: falta un informe real de varias muestras para confirmar el formato.
 - La versión del formato se lee de "FOR 04 050, Versión N° …". Si es distinta de la 15, se muestra un aviso.
 
 ### IHA
@@ -73,7 +73,7 @@ pdfjs-dist (Apache-2.0) se carga solo al elegir un PDF, en un chunk aparte. El w
 ## Límites conocidos
 
 - Sin OCR: los PDF escaneados se capturan a mano.
-- Chemilab con varias muestras en un mismo informe: captura manual.
+- Chemilab con varias muestras: captura asistida por columna en Carga rápida (pendiente de validar con un informe real).
 - Las filas multilínea que no cumplen el centrado simétrico se marcan con aviso y no se adivinan.
 - Si cambia el diseño de un laboratorio, el adaptador puede devolver filas parciales con `unrecognizedLines` o pasar a captura manual. En ambos casos, revise y actualice el adaptador con un nuevo fixture.
 
