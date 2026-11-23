@@ -105,7 +105,15 @@ jobs:
         run: supabase db reset --local --no-seed
 
       - name: Validar funciones SQL
-        run: supabase db lint --local --schema public --fail-on error
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! supabase db lint --local --schema public --fail-on error 2>&1 | tee "${RUNNER_TEMP}/db-lint.txt"; then
+            # Publicar el detalle como anotación para verlo en el resumen del run.
+            detail="$(head -c 3500 "${RUNNER_TEMP}/db-lint.txt" | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')"
+            echo "::error title=supabase db lint::${detail}"
+            exit 1
+          fi
 
       - name: Instalar cliente PostgreSQL
         run: sudo apt-get update && sudo apt-get install -y postgresql-client

@@ -14,7 +14,7 @@ export const glossary: HelpEntry[] = [
   { term: 'LCM', definition: 'Límite de cuantificación indicado por el catálogo del ensayo.', source: 'src/types/catalogs.ts' },
   { term: 'RSA', definition: 'Reporte de resultados de laboratorio gestionado por el flujo de reportes.', source: 'src/pages/ReportBuilderPage.tsx' },
   { term: 'COT', definition: 'Consecutivo y código de una cotización comercial.', source: 'src/types/auth.ts; p03-clientes-cotizaciones.prompt.md' },
-  { term: 'INF', definition: 'Informe técnico complementario, fuera del MVP.', source: 'PROMPTS CODEX/p13-dashboard-admin.prompt.md' },
+  { term: 'INF', definition: 'Informe técnico complementario, fuera del MVP.', source: 'Especificación del MVP (alcance)' },
   { term: 'ARD', definition: 'Tipo de descarga registrado en una cotización o actividad normativa.', source: 'src/types/commercial.ts; p09-normativa.prompt.md' },
   { term: 'ARnD', definition: 'Tipo de descarga registrado en una cotización o actividad normativa.', source: 'src/types/commercial.ts; p09-normativa.prompt.md' },
   { term: 'N.A.', definition: 'Estado especial de valor: no aplica; se conserva separado de cero.', source: 'src/lib/format/valueState.ts' },
@@ -48,7 +48,7 @@ export const quoteStates: HelpEntry[] = [
 
 export const roleHelp: RoleHelp[] = [
   { code: 'ADMIN', responsibility: 'Administra usuarios, catálogos y configuración según los permisos del sistema.', source: 'src/types/auth.ts; p13-dashboard-admin.prompt.md' },
-  { code: 'ADMIN_TECNICO', responsibility: 'Gestiona despliegue y soporte; no aprueba resultados.', source: 'src/types/auth.ts; PROMPTS CODEX/specs/k04-observabilidad-errores/requirements.md' },
+  { code: 'ADMIN_TECNICO', responsibility: 'Gestiona despliegue y soporte; no aprueba resultados.', source: 'src/types/auth.ts' },
   { code: 'COMERCIAL', responsibility: 'Gestiona clientes, contactos y cotizaciones.', source: 'src/types/commercial.ts' },
   { code: 'MUESTREO', responsibility: 'Registra datos de campo y consulta la información de muestras permitida.', source: 'src/pages/ReceptionPage.tsx; p05-campo-adjuntos.prompt.md' },
   { code: 'RECEPCION', responsibility: 'Registra la recepción y gestiona envíos externos y adjuntos autorizados.', source: 'src/pages/ReceptionPage.tsx; p06-subcontratados.prompt.md' },

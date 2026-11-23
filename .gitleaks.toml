@@ -5,6 +5,10 @@
 
 title = "LabRepSys Gitleaks Config"
 
+# Usar también las reglas por defecto de Gitleaks (JWT, claves de nube, etc.)
+[extend]
+  useDefault = true
+
 # ── Reglas adicionales específicas del proyecto ───────────────────────────────
 
 [[rules]]
@@ -31,7 +35,7 @@ title = "LabRepSys Gitleaks Config"
 [[rules]]
   id = "supabase-access-token"
   description = "Token de acceso personal de Supabase CLI"
-  regex = '''(SUPABASE_ACCESS_TOKEN|sbp_[a-zA-Z0-9]{40})'''
+  regex = '''sbp_[a-zA-Z0-9]{40}'''
   tags = ["supabase", "access-token", "critical"]
 
 # ── Allowlist global ──────────────────────────────────────────────────────────
@@ -47,6 +51,7 @@ title = "LabRepSys Gitleaks Config"
   regexes = [
     '''placeholder_anon_key''',
     '''placeholder\.supabase\.co''',
-    '''<[A-Z_]+>''',       # Placeholders tipo <PROJECT_REF>
+    '''<[A-Za-z_]+>''',    # Placeholders tipo <PROJECT_REF> o <password>
     '''<UUID_DEL_USUARIO>''',
+    '''eyJzdWIiOiIxMjM0NTY3ODkwIn0''',  # JWT de ejemplo de jwt.io usado en pruebas
   ]
