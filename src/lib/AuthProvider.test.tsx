@@ -175,11 +175,22 @@ describe('AuthProvider y rutas protegidas', () => {
     anonymousApp.unmount()
 
     mocks.session = { user: { id: 'user-1', email: 'ana@example.test' } }
-    mocks.roles = []
+    mocks.roles = [{ role_code: 'ANALISTA', roles: { name: 'Analista' } }]
     const { unmount } = renderAuthApp('/auditoria')
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Acceso denegado' })).toBeInTheDocument()
     })
+    expect(screen.queryByText('Datos de auditoría')).not.toBeInTheDocument()
+    unmount()
+  })
+
+  it('explica a una cuenta activa sin roles que aún no tiene rol', async () => {
+    mocks.session = { user: { id: 'user-1', email: 'ana@example.test' } }
+    mocks.roles = []
+    const { unmount } = renderAuthApp('/auditoria')
+    expect(
+      await screen.findByRole('heading', { name: 'Tu cuenta aún no tiene rol' }),
+    ).toBeInTheDocument()
     expect(screen.queryByText('Datos de auditoría')).not.toBeInTheDocument()
     unmount()
   })

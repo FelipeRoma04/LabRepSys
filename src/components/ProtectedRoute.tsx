@@ -42,6 +42,10 @@ export function ProtectedRoute({
     )
   }
 
+  // Una cuenta activa sin roles no puede leer catálogos ni datos (RLS); se
+  // explica en lugar de mostrar pantallas vacías.
+  if (roles.length === 0) return <AccessDeniedPage noRole />
+
   if (
     allowedRoles &&
     !roles.some((role) => allowedRoles.includes(role.code))

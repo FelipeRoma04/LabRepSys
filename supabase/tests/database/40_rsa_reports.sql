@@ -103,13 +103,10 @@ select ok((select code ~ '^RSA [0-9]{4}-[0-9]{4}$' and status = 'ISSUED'
   'El reporte emitido tiene consecutivo RSA y estado ISSUED');
 
 select tests.set_role_context('ANALISTA', :'analyst_id');
-with updated as (
-  update public.reports set client_id = '40000000-0000-0000-0000-000000000099'
-  where id = :'report_id'::uuid returning id
-)
-select is(
-  (select count(*)::int from updated),
-  0,
+select throws_ok(
+  format('update public.reports set client_id = %L::uuid where id = %L::uuid',
+    '40000000-0000-0000-0000-000000000099', :'report_id'),
+  '42501', null,
   'El analista no puede modificar un reporte emitido'
 );
 select throws_ok(format(

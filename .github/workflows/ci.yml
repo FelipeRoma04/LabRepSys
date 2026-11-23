@@ -115,6 +115,12 @@ jobs:
             exit 1
           fi
 
+      - name: Aplicar migraciones con datos semilla públicos
+        run: supabase db reset --local
+
+      - name: Pruebas de base de datos (pgTAP)
+        run: supabase test db
+
       - name: Instalar cliente PostgreSQL
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 

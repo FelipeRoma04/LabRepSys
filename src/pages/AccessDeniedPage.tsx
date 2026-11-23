@@ -5,9 +5,11 @@ import { ErrorState } from '../components/ErrorState'
 
 interface AccessDeniedPageProps {
   inactive?: boolean
+  noRole?: boolean
 }
 
-export function AccessDeniedPage({ inactive = false }: AccessDeniedPageProps) {
+export function AccessDeniedPage({ inactive = false, noRole = false }: AccessDeniedPageProps) {
+  const canOnlySignOut = inactive || noRole
   const { logout, isSigningOut, authError } = useAuth()
   const [logoutError, setLogoutError] = useState<string | null>(null)
 
@@ -24,18 +26,24 @@ export function AccessDeniedPage({ inactive = false }: AccessDeniedPageProps) {
     <main className="standalone-page">
       <section className="state-panel" aria-labelledby="access-denied-title">
         <h1 id="access-denied-title">
-          {inactive ? 'Cuenta pendiente de activación' : 'Acceso denegado'}
+          {inactive
+            ? 'Cuenta pendiente de activación'
+            : noRole
+              ? 'Tu cuenta aún no tiene rol'
+              : 'Acceso denegado'}
         </h1>
         <p>
           {inactive
             ? 'Tu cuenta está inactiva. Contacta a un administrador para solicitar su activación.'
-            : 'Tu cuenta no tiene uno de los roles necesarios para acceder a esta sección.'}
+            : noRole
+              ? 'Un administrador debe asignarte un rol para que puedas usar el sistema.'
+              : 'Tu cuenta no tiene uno de los roles necesarios para acceder a esta sección.'}
         </p>
         {(logoutError || authError) && (
           <ErrorState message={logoutError ?? authError ?? ''} />
         )}
         <div className="standalone-actions">
-          {inactive ? (
+          {canOnlySignOut ? (
             <button
               disabled={isSigningOut}
               onClick={() => void handleLogout()}
