@@ -4,9 +4,9 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - main
+  # En main, el CI lo ejecuta deploy.yml antes de publicar (no se dispara por push
+  # aquí para no correrlo dos veces).
+  workflow_call:
 
 permissions:
   contents: read

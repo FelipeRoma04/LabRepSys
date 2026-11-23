@@ -14,8 +14,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # El sitio solo se publica si el CI completo pasa (lint, pruebas, secretos,
+  # migraciones/RLS y E2E cuando está habilitado).
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+    permissions:
+      contents: read
+
   build:
     name: Compilar y verificar
+    needs: ci
     runs-on: ubuntu-latest
     permissions:
       contents: read
