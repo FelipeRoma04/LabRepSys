@@ -7,7 +7,15 @@
 export { formatNumber, parseLocaleNumber } from './number'
 export { formatResult } from './result'
 export { formatValueState } from './valueState'
-export { formatDateTime, isSuspiciousDate, fromExcelSerial, DEFAULT_FORMAT_SETTINGS } from './date'
+export {
+  formatDateTime,
+  formatDate,
+  isSuspiciousDate,
+  fromExcelSerial,
+  DEFAULT_FORMAT_SETTINGS,
+  setActiveFormatSettings,
+  getActiveFormatSettings,
+} from './date'
 export type {
   ValueState,
   ResultOperator,

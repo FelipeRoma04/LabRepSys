@@ -21,6 +21,7 @@ import type {
   ExternalShipmentStatus,
 } from '../types/externalShipments'
 import type { SampleTestDetail } from '../types/samples'
+import { formatDateTime } from '../lib/format'
 
 const statusLabels: Record<ExternalShipmentStatus, string> = {
   PENDING_SEND: 'Pendiente de envío',
@@ -29,11 +30,9 @@ const statusLabels: Record<ExternalShipmentStatus, string> = {
   CANCELLED: 'Cancelado',
 }
 
+/** Fecha y hora con el formato y la zona horaria vigentes (antes restaba el desfase dos veces) */
 function toLocalDateTime(value: string): string {
-  const date = new Date(value)
-  if (!Number.isFinite(date.getTime())) return '—'
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
-  return date.toLocaleString('es-CO')
+  return formatDateTime(value)
 }
 
 function testLabel(test: SampleTestDetail): string {

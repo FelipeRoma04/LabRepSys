@@ -7,6 +7,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { ModulePage } from './pages/ModulePage'
 import { navigationGroups } from './navigation'
 import { AuthProvider } from './lib/AuthProvider'
+import { FormatSettingsProvider } from './lib/format/FormatSettingsProvider'
 import { isSupabaseConfigured, requiredSupabaseVariables } from './lib/supabase'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthConfirmPage } from './pages/AuthConfirmPage'
@@ -106,6 +107,7 @@ export default function App() {
 
   return (
     <AuthProvider>
+      <FormatSettingsProvider>
       <HashRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -157,6 +159,7 @@ export default function App() {
           <Route path="*" element={<Navigate replace to="/login" />} />
         </Routes>
       </HashRouter>
+      </FormatSettingsProvider>
     </AuthProvider>
   )
 }

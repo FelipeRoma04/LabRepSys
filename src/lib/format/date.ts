@@ -18,50 +18,65 @@ export const DEFAULT_FORMAT_SETTINGS: FormatSettings = {
  */
 const MIN_TYPICAL_YEAR = 2000
 
+/** Configuración vigente (app_settings). La fija FormatSettingsProvider al iniciar sesión. */
+let activeSettings: FormatSettings = DEFAULT_FORMAT_SETTINGS
+
+export function setActiveFormatSettings(settings: FormatSettings): void {
+  activeSettings = settings
+}
+
+export function getActiveFormatSettings(): FormatSettings {
+  return activeSettings
+}
+
+/** Aplica un patrón con dd, MM, yyyy, HH y mm (p. ej. "dd/MM/yyyy HH:mm") */
+function applyPattern(pattern: string, parts: Record<string, string>): string {
+  return pattern.replace(/yyyy|dd|MM|HH|mm/g, (token) => ({
+    yyyy: parts.year,
+    dd: parts.day,
+    MM: parts.month,
+    HH: parts.hour,
+    mm: parts.minute,
+  })[token] ?? token)
+}
+
 /**
  * Formatea un Date o string ISO a texto localizado.
- * Req 4.1: respeta timezone y formato de app_settings.
+ * Req 4.1: respeta la zona horaria y el formato de app_settings
+ * (por defecto dd/MM/yyyy y America/Bogota).
  *
  * @param value    - Date, string ISO o timestamp numérico
- * @param settings - Configuración de formato (con defaults si no se pasa)
+ * @param settings - Ajustes puntuales sobre la configuración vigente
  * @param includeTime - true para incluir hora, false para solo fecha
  */
 export function formatDateTime(
-  value: Date | string | number,
+  value: Date | string | number | null | undefined,
   settings: Partial<FormatSettings> = {},
   includeTime = true,
 ): string {
-  const cfg = { ...DEFAULT_FORMAT_SETTINGS, ...settings }
+  if (value === null || value === undefined || value === '') return '—'
+  const cfg = { ...activeSettings, ...settings }
   const date = value instanceof Date ? value : new Date(value)
 
   if (isNaN(date.getTime())) return '—'
 
-  // Construir opciones para Intl.DateTimeFormat
-  const options: Intl.DateTimeFormatOptions = {
-    timeZone: cfg.timezone,
-  }
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('es-CO', {
+      timeZone: cfg.timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(date).map((part) => [part.type, part.value]),
+  )
+  return applyPattern(includeTime ? cfg.dateTimeFormat : cfg.dateFormat, parts)
+}
 
-  if (includeTime) {
-    options.year = 'numeric'
-    options.month = '2-digit'
-    options.day = '2-digit'
-    options.hour = '2-digit'
-    options.minute = '2-digit'
-    options.hour12 = false
-  } else {
-    options.year = 'numeric'
-    options.month = '2-digit'
-    options.day = '2-digit'
-  }
-
-  // Formatear con es-CO en la zona indicada
-  const parts = new Intl.DateTimeFormat('es-CO', options).formatToParts(date)
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
-
-  if (includeTime) {
-    return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}`
-  }
-  return `${get('day')}/${get('month')}/${get('year')}`
+/** Solo fecha, con el formato y la zona horaria vigentes */
+export function formatDate(value: Date | string | number | null | undefined): string {
+  return formatDateTime(value, {}, false)
 }
 
 /**

@@ -31,6 +31,7 @@ import type {
   ResultLoadOptions,
 } from '../types/results'
 import { supabase } from '../lib/supabase'
+import { formatDateTime } from '../lib/format'
 
 type TabKey = 'pdf' | 'paste' | 'manual'
 type ImportRowView = ImportRow & { parseWarning?: string }
@@ -177,9 +178,7 @@ function safeFileName(name: string): string {
 }
 
 function localDateTime(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isFinite(date.getTime()) ? date.toLocaleString('es-CO') : '—'
+  return formatDateTime(value)
 }
 
 function rowToDraft(row: EditableRow): ResultImportRowDraft {

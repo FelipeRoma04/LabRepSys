@@ -18,6 +18,7 @@ import {
 } from '../services/samples'
 import type { Client } from '../types/commercial'
 import type { Sample } from '../types/samples'
+import { formatDateTime } from '../lib/format'
 
 const ExcelImportModal = lazy(() => import('../features/import/ExcelImportModal').then((module) => ({ default: module.ExcelImportModal })))
 
@@ -197,7 +198,7 @@ export function SamplesPage() {
     { key: 'quote', header: 'Cotización', render: (sample) => sample.quote?.code ?? '—' },
     { key: 'plan', header: 'Plan', render: (sample) => sample.plan_code ?? '—' },
     { key: 'point', header: 'Punto', render: (sample) => sample.sampling_point ?? '—' },
-    { key: 'received', header: 'Recibida', render: (sample) => new Date(sample.received_at).toLocaleString('es-CO') },
+    { key: 'received', header: 'Recibida', render: (sample) => formatDateTime(sample.received_at) },
     {
       key: 'status',
       header: 'Estado',
@@ -266,8 +267,8 @@ export function SamplesPage() {
             <div><dt>Matriz</dt><dd>{selectedSample.matrix ? `${selectedSample.matrix.code} · ${selectedSample.matrix.name}` : '—'}</dd></div>
             <div><dt>Plan</dt><dd>{selectedSample.plan_code ?? '—'}</dd></div>
             <div><dt>Punto de muestreo</dt><dd>{selectedSample.sampling_point ?? '—'}</dd></div>
-            <div><dt>Fecha de muestreo</dt><dd>{selectedSample.sampled_at ? new Date(selectedSample.sampled_at).toLocaleString('es-CO') : '—'}</dd></div>
-            <div><dt>Fecha de recepción</dt><dd>{new Date(selectedSample.received_at).toLocaleString('es-CO')}</dd></div>
+            <div><dt>Fecha de muestreo</dt><dd>{formatDateTime(selectedSample.sampled_at)}</dd></div>
+            <div><dt>Fecha de recepción</dt><dd>{formatDateTime(selectedSample.received_at)}</dd></div>
             <div><dt>Estado</dt><dd>{selectedSample.status}</dd></div>
             <div><dt>Condiciones de llegada</dt><dd>{selectedSample.reception?.arrival_conditions ?? '—'}</dd></div>
             <div><dt>Desviaciones</dt><dd>{selectedSample.reception?.deviations ?? '—'}</dd></div>
@@ -300,7 +301,7 @@ export function SamplesPage() {
             : <p>No hay normativa sugerida desde cotización.</p>}
           <h3>Historial</h3>
           {selectedSample.events?.length
-            ? <ul>{selectedSample.events.map((event) => <li key={event.id}>{new Date(event.created_at).toLocaleString('es-CO')} · {event.event_type}</li>)}</ul>
+            ? <ul>{selectedSample.events.map((event) => <li key={event.id}>{formatDateTime(event.created_at)} · {event.event_type}</li>)}</ul>
             : <p>No hay eventos registrados.</p>}
           <section className="sample-pending-section">
             <h3>Datos de campo</h3>

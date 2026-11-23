@@ -26,6 +26,7 @@ import {
   type QualityTestIssue,
   type QualitySummaryRow,
 } from '../services/migrationAssistant'
+import { formatDate } from '../lib/format'
 
 type TabKey = 'mapeo' | 'calidad'
 type CalidadTabKey = 'clientes' | 'ensayos'
@@ -42,7 +43,7 @@ const mappingColumns: DataTableColumn<LegacyMapping>[] = [
   }[r.status] ?? r.status) },
   { key: 'reason',     header: 'Motivo', render: (r) => r.reason ?? '—' },
   { key: 'decided_at', header: 'Decidido', render: (r) => r.decided_at
-    ? new Date(r.decided_at).toLocaleDateString('es-CO') : '—' },
+    ? formatDate(r.decided_at) : '—' },
 ]
 
 const clientColumns: DataTableColumn<QualityClientIssue>[] = [

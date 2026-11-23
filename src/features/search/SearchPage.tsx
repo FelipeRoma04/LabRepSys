@@ -15,6 +15,7 @@ import {
   type SearchFilters,
   type SearchResult,
 } from './searchTypes'
+import { formatDate } from '../../lib/format'
 
 const pageSize = 20
 const entityLabels: Record<SearchEntityType, string> = {
@@ -283,7 +284,7 @@ export function SearchPage() {
                           {item.clientName && <span>{item.clientName}</span>}
                           {item.subtitle && <span>{item.subtitle}</span>}
                           <span>{item.status}</span>
-                          <time>{item.date ? new Date(item.date).toLocaleDateString() : '—'}</time>
+                          <time>{formatDate(item.date)}</time>
                         </Link>
                       </li>
                     ))}

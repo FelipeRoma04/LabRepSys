@@ -9,6 +9,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { useAuth } from '../hooks/useAuth'
 import { listPendingExternalReports, receiveExternalReport } from '../services/externalShipments'
 import type { ExternalShipmentStatus, PendingExternalReport } from '../types/externalShipments'
+import { formatDateTime } from '../lib/format'
 
 const labels: Record<ExternalShipmentStatus, string> = {
   PENDING_SEND: 'Pendiente de envío',
@@ -19,8 +20,7 @@ const labels: Record<ExternalShipmentStatus, string> = {
 
 function displayDate(value: string | null): string {
   if (!value) return '—'
-  const date = new Date(value)
-  return Number.isFinite(date.getTime()) ? date.toLocaleString('es-CO') : '—'
+  return formatDateTime(value)
 }
 
 function currentLocalDateTime(): string {

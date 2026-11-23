@@ -21,6 +21,7 @@ import {
   type SampleReferenceContext,
 } from './sampleImportService'
 import { executeTestBatchImport, validateTestRows, type ParsedTestRow } from './testImportService'
+import { formatNumber } from '../../lib/format'
 
 interface ExcelImportModalProps {
   open: boolean
@@ -71,7 +72,7 @@ export function ExcelImportModal({ open, target, onClose, onImported }: ExcelImp
     try {
       const raw = readSheetRawRows(worksheet)
       if (raw.totalRows > raw.rows.length) {
-        throw new Error(`La hoja tiene ${raw.totalRows.toLocaleString()} filas; el límite es ${raw.rows.length.toLocaleString()}. Divide el archivo para continuar.`)
+        throw new Error(`La hoja tiene ${formatNumber(raw.totalRows, 0)} filas; el límite es ${formatNumber(raw.rows.length, 0)}. Divide el archivo para continuar.`)
       }
 
       let nextPreview: ImportPreviewResult<ParsedSampleRow | ParsedTestRow>

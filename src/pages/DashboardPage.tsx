@@ -4,7 +4,7 @@ import { EmptyState } from '../components/EmptyState'
 import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
 import { PageHeader } from '../components/PageHeader'
-import { formatDateTime } from '../lib/format'
+import { formatDateTime, formatNumber } from '../lib/format'
 import { supabase } from '../lib/supabase'
 
 interface RecentAudit {
@@ -119,5 +119,5 @@ export function DashboardPage() {
 }
 
 function MetricCard({ label, value }: { label: string; value: number }) {
-  return <article className="dashboard-card"><h2>{label}</h2><p>{value.toLocaleString('es-CO')}</p></article>
+  return <article className="dashboard-card"><h2>{label}</h2><p>{formatNumber(value, 0)}</p></article>
 }

@@ -13,6 +13,7 @@ import {
   saveReportDraft,
   type ReportBuilderOptions,
 } from '../services/reportBuilder'
+import { formatDate } from '../lib/format'
 
 const emptyOptions: ReportBuilderOptions = {
   samples: [],
@@ -208,7 +209,7 @@ export function ReportBuilderPage() {
                 <span>
                   <strong>{sample.code}</strong> · {sample.client?.business_name ?? 'Cliente no disponible'}
                   {' · '}{sample.matrix?.name ?? 'Matriz no disponible'}
-                  {' · Muestreo: '}{sample.sampled_at ? new Date(sample.sampled_at).toLocaleDateString('es-CO') : 'No registrado'}
+                  {' · Muestreo: '}{sample.sampled_at ? formatDate(sample.sampled_at) : 'No registrado'}
                   {sample.sampling_point ? ` · ${sample.sampling_point}` : ''}
                 </span>
               </label>
