@@ -21,6 +21,8 @@ export interface Report {
   issued_at?: string
   replaces_report_id?: string
   rectification_reason?: string
+  /** Emitido con la serie DEMO (todas sus muestras eran DEMO) */
+  is_demo?: boolean
   created_at: string
   updated_at: string
 }

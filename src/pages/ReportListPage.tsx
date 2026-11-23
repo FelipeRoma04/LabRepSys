@@ -89,7 +89,16 @@ export function ReportListPage({ statusFilter, title, description }: Props) {
   }, [rectifyTarget, rectifyReason, load])
 
   const columns: DataTableColumn<Report>[] = [
-    { key: 'code',       header: 'Código',  render: (r) => r.code ?? '—' },
+    {
+      key: 'code',
+      header: 'Código',
+      render: (r) => (
+        <>
+          {r.code ?? '—'}
+          {r.is_demo && <> <StatusBadge label="DEMO" tone="info" /></>}
+        </>
+      ),
+    },
     { key: 'version',    header: 'Ver.',    render: (r) => String(r.version) },
     { key: 'status',     header: 'Estado',  render: (r) => (
       <StatusBadge tone={statusTone(r.status)} label={REPORT_STATUS_LABELS[r.status]} />

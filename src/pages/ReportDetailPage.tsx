@@ -147,6 +147,7 @@ export function ReportDetailPage() {
         description="Detalle, historial, hallazgos de validación y comentarios del reporte."
       >
         <StatusBadge label={statusLabel(report.status)} tone={statusTone(report.status)} />
+        {report.is_demo && <StatusBadge label="DEMO · no es un reporte oficial" tone="info" />}
       </PageHeader>
       {error && <ErrorState title="No se pudo completar la acción" message={error} />}
 
