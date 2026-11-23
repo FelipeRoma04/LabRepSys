@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { EmptyState } from '../components/EmptyState'
 import { ErrorState } from '../components/ErrorState'
@@ -6,6 +7,12 @@ import { LoadingState } from '../components/LoadingState'
 import { PageHeader } from '../components/PageHeader'
 import { formatDateTime } from '../lib/format'
 import { supabase } from '../lib/supabase'
+import {
+  listLateExternalReports,
+  loadDeadlineIndicators,
+  type DeadlineIndicators,
+  type LateExternalReport,
+} from '../services/dashboardIndicators'
 
 interface RecentAudit {
   id: string
@@ -42,6 +49,9 @@ export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deadlines, setDeadlines] = useState<DeadlineIndicators | null>(null)
+  const [lateExternal, setLateExternal] = useState<LateExternalReport[] | null>(null)
+  const [indicatorError, setIndicatorError] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     if (!supabase) {
@@ -63,6 +73,12 @@ export function DashboardPage() {
         pending_external: Record<string, number>
         recent: RecentAudit[]
       }
+      // Los indicadores operativos no bloquean el resumen si alguno falla
+      const [deadlineResult, lateResult] = await Promise.allSettled([loadDeadlineIndicators(), listLateExternalReports()])
+      setDeadlines(deadlineResult.status === 'fulfilled' ? deadlineResult.value : null)
+      setLateExternal(lateResult.status === 'fulfilled' ? lateResult.value : null)
+      const failed = [deadlineResult, lateResult].find((item) => item.status === 'rejected') as PromiseRejectedResult | undefined
+      setIndicatorError(failed ? (failed.reason instanceof Error ? failed.reason.message : 'No se pudieron calcular algunos indicadores.') : null)
       setData({
         samples: result.samples_received ?? 0,
         samplesPending: result.samples_pending ?? 0,
@@ -96,9 +112,50 @@ export function DashboardPage() {
       {error && <ErrorState message={error} />}
       {loading ? <LoadingState message="Cargando indicadores…" /> : data && (
         <>
+          <section aria-label="Indicadores operativos" className="dashboard-grid">
+            <MetricCard label="Muestras recibidas" value={data.samples} to="/muestras/buscar" />
+            <MetricCard label="Muestras pendientes de revisión" value={data.samplesPending} to="/muestras/buscar" />
+            <MetricCard
+              label="RSA pendientes de revisión"
+              value={(data.reports.READY_FOR_REVIEW ?? 0) + (data.reports.IN_REVIEW ?? 0)}
+              to="/reportes/revision"
+            />
+            {deadlines && (
+              <>
+                <MetricCard label="Entregas al cliente vencidas" value={deadlines.overdue} to="/muestras/buscar" tone={deadlines.overdue ? 'danger' : undefined} />
+                <MetricCard
+                  label={`Entregas próximas a vencer (≤ ${deadlines.alertBusinessDays} días hábiles)`}
+                  value={deadlines.dueSoon}
+                  to="/muestras/buscar"
+                  tone={deadlines.dueSoon ? 'warning' : undefined}
+                />
+              </>
+            )}
+            {lateExternal && (
+              <MetricCard
+                label="Reportes externos retrasados"
+                value={lateExternal.length}
+                to="/laboratorios-externos"
+                tone={lateExternal.length ? 'danger' : undefined}
+              />
+            )}
+          </section>
+          {deadlines?.issue && <p className="catalog-notice">{deadlines.issue}</p>}
+          {indicatorError && <p className="catalog-notice">Algunos indicadores no están disponibles: {indicatorError}</p>}
+          {lateExternal && lateExternal.length > 0 && (
+            <section className="dashboard-section">
+              <h2>Reportes externos más retrasados</h2>
+              <ul className="dashboard-list">
+                {lateExternal.slice(0, 5).map((item) => (
+                  <li key={item.shipment_id}>
+                    {item.sample_code} · {item.laboratory_name}
+                    <strong>{item.days_overdue} día(s)</strong>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <section aria-label="Resumen del periodo" className="dashboard-grid">
-            <MetricCard label="Muestras recibidas" value={data.samples} />
-            <MetricCard label="Muestras pendientes de revisión" value={data.samplesPending} />
             {Object.entries(data.execution).map(([label, value]) => <MetricCard key={label} label={label.replaceAll('_', ' ')} value={value} />)}
             {Object.entries(data.reports).map(([label, value]) => <MetricCard key={label} label={`RSA ${label.toLocaleLowerCase()}`} value={value} />)}
           </section>
@@ -118,6 +175,17 @@ export function DashboardPage() {
   )
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
-  return <article className="dashboard-card"><h2>{label}</h2><p>{value.toLocaleString('es-CO')}</p></article>
+function MetricCard({ label, value, to, tone }: {
+  label: string
+  value: number
+  to?: string
+  tone?: 'danger' | 'warning'
+}) {
+  return (
+    <article className={`dashboard-card${tone ? ` dashboard-card--${tone}` : ''}`}>
+      <h2>{label}</h2>
+      <p>{value.toLocaleString('es-CO')}</p>
+      {to && <Link to={to}>Ver detalle</Link>}
+    </article>
+  )
 }

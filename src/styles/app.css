@@ -2916,3 +2916,11 @@
   font-size: 1.4rem;
   font-weight: 700;
 }
+
+.dashboard-card--danger {
+  border-left: 4px solid #b3261e;
+}
+
+.dashboard-card--warning {
+  border-left: 4px solid #a66300;
+}
