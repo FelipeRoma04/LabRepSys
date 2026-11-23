@@ -8,7 +8,17 @@ import { Modal } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
 import { StatusBadge } from '../components/StatusBadge'
 import { useAuth } from '../hooks/useAuth'
+import { deliveryDates } from '../lib/businessDays'
+import {
+  DELIVERY_STATE_LABELS,
+  DELIVERY_STATE_TONES,
+  bogotaDateOf,
+  deliveryStatus,
+  todayInBogota,
+  type DeliveryStatus,
+} from '../lib/deliveryStatus'
 import { listClients } from '../services/commercial'
+import { listDeliveredSampleIds, loadDeliveryConfig, type DeliveryConfig } from '../services/deliveryDates'
 import {
   getSampleOptions,
   importSampleRows,
@@ -76,6 +86,9 @@ export function SamplesPage() {
       : null,
   )
   const [selectedSample, setSelectedSample] = useState<Sample | null>(null)
+  const [delivery, setDelivery] = useState<DeliveryConfig | null>(null)
+  const [delivered, setDelivered] = useState<Set<string>>(new Set())
+  const [deliveryError, setDeliveryError] = useState<string | null>(null)
   const [importRows, setImportRows] = useState<CsvSamplePreviewRow[] | null>(null)
   const [importing, setImporting] = useState(false)
   const [importErrors, setImportErrors] = useState<{ row: number; message: string }[]>([])
@@ -89,6 +102,13 @@ export function SamplesPage() {
       const [sampleRows, clientRows] = await Promise.all([listSamples(), listClients()])
       setSamples(sampleRows)
       setClients(clientRows)
+      // Las fechas de entrega no bloquean la lista si su configuración falla
+      const [config, deliveredIds] = await Promise.allSettled([loadDeliveryConfig(), listDeliveredSampleIds()])
+      setDelivery(config.status === 'fulfilled' ? config.value : null)
+      setDeliveryError(config.status === 'rejected'
+        ? (config.reason instanceof Error ? config.reason.message : 'No se pudo cargar la configuración de entrega.')
+        : null)
+      setDelivered(deliveredIds.status === 'fulfilled' ? deliveredIds.value : new Set())
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudieron cargar las muestras.')
     } finally {
@@ -190,6 +210,37 @@ export function SamplesPage() {
     clients.find((client) => client.id === sample.client_id)?.business_name ??
     '—'
 
+  const today = todayInBogota()
+  const deliveryOf = useCallback((sample: Sample): {
+    clientDue: string | null
+    laboratoryDue: string | null
+    client: DeliveryStatus
+    laboratory: DeliveryStatus | null
+    issues: string[]
+  } | null => {
+    if (!delivery) return null
+    const dates = deliveryDates(bogotaDateOf(sample.received_at), delivery.settings, delivery.holidays)
+    const common = { today, settings: delivery.settings, holidays: delivery.holidays, alertBusinessDays: delivery.alertBusinessDays }
+    const isDelivered = delivered.has(sample.id)
+    const subcontracted = sample.tests?.some((test) => test.execution_type === 'SUBCONTRACTED') ?? false
+    return {
+      clientDue: dates.clientDueDate,
+      laboratoryDue: subcontracted ? dates.laboratoryDueDate : null,
+      client: deliveryStatus({ ...common, dueDate: dates.clientDueDate, delivered: isDelivered }),
+      laboratory: subcontracted ? deliveryStatus({ ...common, dueDate: dates.laboratoryDueDate, delivered: isDelivered }) : null,
+      issues: dates.issues.map((issue) => issue.message),
+    }
+  }, [delivered, delivery, today])
+
+  const deliverySummary = useMemo(() => {
+    const states = samples.map((sample) => deliveryOf(sample)?.client.state)
+    return {
+      overdue: states.filter((state) => state === 'OVERDUE').length,
+      dueSoon: states.filter((state) => state === 'DUE_SOON').length,
+      issue: samples.length ? deliveryOf(samples[0])?.issues[0] ?? null : null,
+    }
+  }, [deliveryOf, samples])
+
   const columns: DataTableColumn<Sample>[] = [
     { key: 'code', header: 'Código', render: (sample) => sample.code },
     { key: 'client', header: 'Cliente', render: (sample) => clientName(sample) },
@@ -198,6 +249,20 @@ export function SamplesPage() {
     { key: 'plan', header: 'Plan', render: (sample) => sample.plan_code ?? '—' },
     { key: 'point', header: 'Punto', render: (sample) => sample.sampling_point ?? '—' },
     { key: 'received', header: 'Recibida', render: (sample) => new Date(sample.received_at).toLocaleString('es-CO') },
+    {
+      key: 'delivery',
+      header: 'Entrega al cliente',
+      render: (sample) => {
+        const info = deliveryOf(sample)
+        if (!info) return '—'
+        return (
+          <>
+            {info.clientDue ?? '—'}{' '}
+            <StatusBadge label={DELIVERY_STATE_LABELS[info.client.state]} tone={DELIVERY_STATE_TONES[info.client.state]} />
+          </>
+        )
+      },
+    },
     {
       key: 'status',
       header: 'Estado',
@@ -240,6 +305,14 @@ export function SamplesPage() {
       />
       {notice && <p className="catalog-notice" role="status">{notice}</p>}
       {error && <ErrorState message={error} />}
+      {deliveryError && <p className="catalog-notice">Fechas de entrega no disponibles: {deliveryError}</p>}
+      {deliverySummary.issue && <p className="catalog-notice">{deliverySummary.issue}</p>}
+      {(deliverySummary.overdue > 0 || deliverySummary.dueSoon > 0) && (
+        <p className="catalog-notice" role="status">
+          Plazos de entrega al cliente: {deliverySummary.overdue} vencido(s) y {deliverySummary.dueSoon} próximo(s) a vencer
+          (aviso desde {delivery?.alertBusinessDays} día(s) hábil(es) antes).
+        </p>
+      )}
       <div className="catalog-toolbar sample-search-toolbar">
         <label>Buscar código, cliente, NIT, cotización, plan o punto
           <input onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} value={filters.search} />
@@ -269,6 +342,31 @@ export function SamplesPage() {
             <div><dt>Fecha de muestreo</dt><dd>{selectedSample.sampled_at ? new Date(selectedSample.sampled_at).toLocaleString('es-CO') : '—'}</dd></div>
             <div><dt>Fecha de recepción</dt><dd>{new Date(selectedSample.received_at).toLocaleString('es-CO')}</dd></div>
             <div><dt>Estado</dt><dd>{selectedSample.status}</dd></div>
+            {(() => {
+              const info = deliveryOf(selectedSample)
+              if (!info) return null
+              return (
+                <>
+                  <div>
+                    <dt>Entrega al cliente</dt>
+                    <dd>
+                      {info.clientDue ?? 'Sin calcular'}{' '}
+                      <StatusBadge label={DELIVERY_STATE_LABELS[info.client.state]} tone={DELIVERY_STATE_TONES[info.client.state]} />
+                      {info.client.businessDaysLeft !== null && ` · ${info.client.businessDaysLeft} día(s) hábil(es)`}
+                    </dd>
+                  </div>
+                  {info.laboratory && (
+                    <div>
+                      <dt>Entrega del laboratorio subcontratado</dt>
+                      <dd>
+                        {info.laboratoryDue ?? 'Sin calcular'}{' '}
+                        <StatusBadge label={DELIVERY_STATE_LABELS[info.laboratory.state]} tone={DELIVERY_STATE_TONES[info.laboratory.state]} />
+                      </dd>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
             <div><dt>Condiciones de llegada</dt><dd>{selectedSample.reception?.arrival_conditions ?? '—'}</dd></div>
             <div><dt>Desviaciones</dt><dd>{selectedSample.reception?.deviations ?? '—'}</dd></div>
             <div><dt>Consulta al cliente</dt><dd>{selectedSample.reception?.client_consulted_on_deviation ? 'Registrada' : 'No registrada'}</dd></div>

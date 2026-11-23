@@ -3,6 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
 import { PageHeader } from '../components/PageHeader'
+import { deliveryDates } from '../lib/businessDays'
+import { bogotaDateOf } from '../lib/deliveryStatus'
+import { loadDeliveryConfig, type DeliveryConfig } from '../services/deliveryDates'
 import {
   getQuoteDetail,
   listClients,
@@ -115,6 +118,15 @@ export function ReceptionPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig | null>(null)
+
+  useEffect(() => {
+    let active = true
+    loadDeliveryConfig()
+      .then((config) => { if (active) setDeliveryConfig(config) })
+      .catch(() => { if (active) setDeliveryConfig(null) })
+    return () => { active = false }
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -589,6 +601,15 @@ export function ReceptionPage() {
                 <div><dt>Matriz</dt><dd>{options.matrices.find((matrix) => matrix.id === payload.matrix_id)?.name ?? '—'}</dd></div>
                 <div><dt>Ensayos</dt><dd>{payload.tests.map((test) => testLabels[test.test_id] ?? test.test_id).join('; ')}</dd></div>
                 <div><dt>Recepción</dt><dd>{payload.received_at}</dd></div>
+                <div>
+                  <dt>Entrega estimada al cliente</dt>
+                  <dd>{(() => {
+                    const received = payload.received_at ? new Date(payload.received_at) : null
+                    if (!deliveryConfig || !received || !Number.isFinite(received.getTime())) return 'Sin calcular'
+                    const dates = deliveryDates(bogotaDateOf(received.toISOString()), deliveryConfig.settings, deliveryConfig.holidays)
+                    return dates.clientDueDate ?? dates.issues[0]?.message ?? 'Sin calcular'
+                  })()}</dd>
+                </div>
                 <div><dt>Consulta de desviación</dt><dd>{payload.reception.has_deviation ? payload.reception.client_consulted_on_deviation ? 'Registrada' : 'Pendiente' : 'No aplica'}</dd></div>
               </dl>
               {editingId && <label>Motivo del cambio posterior a recepción

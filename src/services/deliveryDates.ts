@@ -11,6 +11,10 @@ export const DELIVERY_SETTING_KEYS = {
   client: 'delivery.client_business_days',
 } as const
 
+export const DELIVERY_ALERT_KEY = 'delivery.alert_business_days'
+/** Se usa solo si el parámetro aún no existe en app_settings (migración pendiente) */
+export const DEFAULT_ALERT_BUSINESS_DAYS = 3
+
 function db() {
   if (!supabase) throw new Error('La conexión con Supabase no está configurada.')
   return supabase
@@ -35,17 +39,36 @@ export function parseDeliverySettings(rows: Array<{ key: string; value: unknown 
   }
 }
 
-export async function loadDeliveryConfig(): Promise<{ settings: DeliverySettings; holidays: string[] }> {
+export interface DeliveryConfig {
+  settings: DeliverySettings
+  holidays: string[]
+  alertBusinessDays: number
+}
+
+export async function loadDeliveryConfig(): Promise<DeliveryConfig> {
   const [settings, holidays] = await Promise.all([
-    db().from('app_settings').select('key, value').in('key', Object.values(DELIVERY_SETTING_KEYS)),
+    db().from('app_settings').select('key, value').in('key', [...Object.values(DELIVERY_SETTING_KEYS), DELIVERY_ALERT_KEY]),
     db().from('holidays').select('date').eq('active', true).order('date'),
   ])
   if (settings.error) throw settings.error
   if (holidays.error) throw holidays.error
+  const rows = (settings.data ?? []) as Array<{ key: string; value: unknown }>
+  const alert = rows.find((row) => row.key === DELIVERY_ALERT_KEY)?.value
   return {
-    settings: parseDeliverySettings((settings.data ?? []) as Array<{ key: string; value: unknown }>),
+    settings: parseDeliverySettings(rows),
     holidays: ((holidays.data ?? []) as Array<{ date: string }>).map((row) => row.date),
+    alertBusinessDays: typeof alert === 'number' && Number.isInteger(alert) && alert >= 0 ? alert : DEFAULT_ALERT_BUSINESS_DAYS,
   }
+}
+
+/** Muestras que ya tienen un reporte emitido (se consideran entregadas al cliente) */
+export async function listDeliveredSampleIds(): Promise<Set<string>> {
+  const { data, error } = await db()
+    .from('report_samples')
+    .select('sample_id, report:reports!inner(status)')
+    .eq('report.status', 'ISSUED')
+  if (error) throw error
+  return new Set(((data ?? []) as Array<{ sample_id: string }>).map((row) => row.sample_id))
 }
 
 /** Fechas de entrega para una muestra recibida en `receivedOn` (YYYY-MM-DD, hora de Colombia) */

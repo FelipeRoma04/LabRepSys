@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
   importSampleRows: vi.fn(),
   previewSamplesCsv: vi.fn(),
   navigate: vi.fn(),
+  loadDeliveryConfig: vi.fn(),
+  listDeliveredSampleIds: vi.fn(),
 }))
 
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -32,6 +34,11 @@ vi.mock('../services/commercial', () => ({
   listClients: mocks.listClients,
   listSelectableQuotes: mocks.listSelectableQuotes,
   getQuoteDetail: mocks.getQuoteDetail,
+}))
+
+vi.mock('../services/deliveryDates', () => ({
+  loadDeliveryConfig: mocks.loadDeliveryConfig,
+  listDeliveredSampleIds: mocks.listDeliveredSampleIds,
 }))
 
 vi.mock('../services/samples', () => ({
@@ -148,6 +155,12 @@ beforeEach(() => {
   mocks.saveSample.mockResolvedValue('sample-1')
   mocks.importSampleRows.mockResolvedValue({ imported_count: 1, errors: [] })
   mocks.previewSamplesCsv.mockResolvedValue([])
+  mocks.loadDeliveryConfig.mockResolvedValue({
+    settings: { weekendCode: 1, laboratoryBusinessDays: 15, clientBusinessDays: 20 },
+    holidays: ['2026-01-01'],
+    alertBusinessDays: 3,
+  })
+  mocks.listDeliveredSampleIds.mockResolvedValue(new Set())
 })
 
 async function renderReception(edit = false) {
@@ -176,6 +189,41 @@ async function fillSampleTimingAndContinue(user: ReturnType<typeof userEvent.set
   fireEvent.change(screen.getByLabelText('Fecha y hora de recepción'), { target: { value: '2026-10-16T11:00' } })
   await user.click(screen.getByRole('button', { name: 'Siguiente' }))
 }
+
+describe('fechas de entrega en la lista de muestras', () => {
+  it('muestra la fecha de entrega al cliente y alerta los plazos vencidos', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-12-15T15:00:00Z'))
+    try {
+      mocks.listSamples.mockResolvedValue([
+        { ...sample, id: 's-vencida', code: 'AG0401', received_at: '2026-10-01T15:00:00Z' },
+        { ...sample, id: 's-entregada', code: 'AG0402', received_at: '2026-10-01T15:00:00Z' },
+      ])
+      mocks.listDeliveredSampleIds.mockResolvedValue(new Set(['s-entregada']))
+      render(<MemoryRouter><SamplesPage /></MemoryRouter>)
+
+      expect(await screen.findByText(/1 vencido\(s\) y 0 próximo\(s\) a vencer/)).toBeInTheDocument()
+      expect(screen.getAllByText('2026-10-29')).toHaveLength(2)
+      expect(screen.getByText('Vencida')).toBeInTheDocument()
+      expect(screen.getByText('Entregada')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('avisa que faltan los días no hábiles sin inventar fechas', async () => {
+    mocks.listSamples.mockResolvedValue([sample])
+    mocks.loadDeliveryConfig.mockResolvedValue({
+      settings: { weekendCode: null, laboratoryBusinessDays: 15, clientBusinessDays: 20 },
+      holidays: [],
+      alertBusinessDays: 3,
+    })
+    render(<MemoryRouter><SamplesPage /></MemoryRouter>)
+
+    expect(await screen.findByText(/Falta configurar los días no hábiles/)).toBeInTheDocument()
+    expect(screen.getByText('Sin calcular')).toBeInTheDocument()
+  })
+})
 
 describe('recepción y búsqueda de muestras', () => {
   it('no presenta violaciones axe en la lista de muestras', async () => {

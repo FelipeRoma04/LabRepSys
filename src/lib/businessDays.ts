@@ -74,6 +74,26 @@ export function addBusinessDays(start: string, days: number, calendar: BusinessC
   return toIso(date)
 }
 
+/**
+ * Días hábiles desde `from` (sin contarlo) hasta `to` (contándolo si es hábil).
+ * Negativo si `to` ya pasó. Equivale a NETWORKDAYS.INTL menos el día inicial.
+ */
+export function businessDaysBetween(from: string, to: string, calendar: BusinessCalendar): number {
+  const weekend = new Set(calendar.weekend)
+  const holidays = new Set(calendar.holidays)
+  const start = parseIsoDate(from)
+  const end = parseIsoDate(to)
+  if (start.getTime() === end.getTime()) return 0
+  const step = end > start ? 1 : -1
+  let count = 0
+  const date = new Date(start)
+  while (toIso(date) !== to) {
+    date.setUTCDate(date.getUTCDate() + step)
+    if (!weekend.has(date.getUTCDay() as Weekday) && !holidays.has(toIso(date))) count += step
+  }
+  return count
+}
+
 export interface DeliverySettings {
   /** Código WORKDAY.INTL del fin de semana; null = pendiente de confirmar */
   weekendCode: number | string | null
