@@ -193,6 +193,28 @@ export function remapRows(
   })
 }
 
+/** Filas que pueden enseñar un alias: sin alias y con ensayo elegido a mano */
+export function canLearnAlias(row: QuickRow): boolean {
+  return row.mappedBy === 'USER' && Boolean(row.mappedTestId) && !row.excluded &&
+    (row.doubts.includes('NO_ALIAS') || row.doubts.includes('AMBIGUOUS_ALIAS'))
+}
+
+/** Tras guardar un alias, aplica el mapeo a las demás filas del mismo nombre y laboratorio */
+export function applyLearnedAlias(
+  rows: QuickRow[],
+  fileLaboratory: Map<string, string>,
+  alias: { testId: string; laboratoryId: string; externalName: string },
+): QuickRow[] {
+  const name = normalizeName(alias.externalName)
+  return rows.map((row) => {
+    if (fileLaboratory.get(row.fileKey) !== alias.laboratoryId) return row
+    if (normalizeName(row.externalParameter) !== name) return row
+    const doubts = row.doubts.filter((doubt) => doubt !== 'NO_ALIAS' && doubt !== 'AMBIGUOUS_ALIAS')
+    if (row.mappedBy === 'USER' && row.mappedTestId !== alias.testId) return row
+    return { ...row, mappedTestId: alias.testId, mappedBy: 'ALIAS', doubts }
+  })
+}
+
 export function isDoubtful(row: QuickRow): boolean {
   return row.doubts.length > 0
 }

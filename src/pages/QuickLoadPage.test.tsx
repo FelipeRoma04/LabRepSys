@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   readPdf: vi.fn(),
   isDuplicatePdf: vi.fn(),
   generateDraft: vi.fn(),
+  learnTestAlias: vi.fn(),
 }))
 
 vi.mock('../services/results', () => ({ getResultLoadOptions: mocks.getResultLoadOptions }))
@@ -20,6 +21,7 @@ vi.mock('../features/quickload/quickLoadService', () => ({
   readPdf: mocks.readPdf,
   isDuplicatePdf: mocks.isDuplicatePdf,
   generateDraft: mocks.generateDraft,
+  learnTestAlias: mocks.learnTestAlias,
 }))
 
 const options: ResultLoadOptions = {
@@ -124,5 +126,24 @@ describe('Carga rápida', () => {
 
     expect(await screen.findByText('Ya cargado para esta muestra')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Generar borrador' })).toBeDisabled()
+  })
+
+  it('guarda el alias elegido a mano para la próxima carga', async () => {
+    const user = userEvent.setup()
+    mocks.readPdf.mockResolvedValue(reading('AGQ', [row('Sodio'), row('Sodio', '9,9')]))
+    mocks.learnTestAlias.mockResolvedValue({ ok: true, created: true })
+    renderPage()
+
+    await user.selectOptions(await screen.findByLabelText('Muestra'), 's-1')
+    await user.upload(screen.getByLabelText('Elegir PDF'), new File(['%PDF'], 'agq.pdf', { type: 'application/pdf' }))
+    expect(await screen.findByText('Filas dudosas (2)')).toBeInTheDocument()
+
+    const [first] = screen.getAllByLabelText('Ensayo para Sodio')
+    await user.selectOptions(first, 'test-na')
+    await user.click(screen.getByRole('button', { name: 'Recordar para la próxima vez' }))
+
+    expect(mocks.learnTestAlias).toHaveBeenCalledWith({ testId: 'test-na', laboratoryId: 'lab-agq', externalName: 'Sodio' })
+    expect(await screen.findByText('«Sodio» quedó guardado como alias para la próxima carga.')).toBeInTheDocument()
+    expect(screen.getByText('Filas dudosas (0)')).toBeInTheDocument()
   })
 })

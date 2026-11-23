@@ -72,6 +72,22 @@ export async function listApprovedTemplates(): Promise<{ id: string; code: strin
   return data ?? []
 }
 
+/** Guarda el nombre del laboratorio como alias del ensayo (learn_test_alias) */
+export async function learnTestAlias(input: {
+  testId: string
+  laboratoryId: string
+  externalName: string
+}): Promise<{ ok: boolean; created?: boolean; message?: string }> {
+  if (!supabase) throw new Error('Supabase no configurado.')
+  const { data, error } = await supabase.rpc('learn_test_alias', {
+    p_test_id: input.testId,
+    p_laboratory_id: input.laboratoryId,
+    p_external_name: input.externalName,
+  })
+  if (error) return { ok: false, message: error.message }
+  return (data ?? { ok: false }) as { ok: boolean; created?: boolean; message?: string }
+}
+
 export async function isDuplicatePdf(sampleId: string, laboratoryId: string, hash: string): Promise<boolean> {
   return Boolean(await findDuplicateImport(sampleId, laboratoryId, hash))
 }

@@ -12,7 +12,9 @@ import { PageHeader } from '../components/PageHeader'
 import { StatusBadge } from '../components/StatusBadge'
 import {
   DOUBT_LABELS,
+  applyLearnedAlias,
   buildQuickRows,
+  canLearnAlias,
   detectLaboratoryId,
   isDoubtful,
   isRowReady,
@@ -22,6 +24,7 @@ import {
 import {
   generateDraft,
   isDuplicatePdf,
+  learnTestAlias,
   listApprovedTemplates,
   readPdf,
   type PdfReading,
@@ -52,6 +55,7 @@ export function QuickLoadPage() {
   const [dragging, setDragging] = useState(false)
   const [progress, setProgress] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const fileCounter = useRef(0)
 
@@ -143,6 +147,32 @@ export function QuickLoadPage() {
     setRows((current) => current.map((row) => row.key === key ? { ...row, ...patch } : row))
   }
 
+  const rememberAlias = async (row: QuickRow) => {
+    const file = files.find((item) => item.key === row.fileKey)
+    if (!options || !file?.laboratoryId) return
+    setError(null)
+    const alias = { testId: row.mappedTestId, laboratoryId: file.laboratoryId, externalName: row.externalParameter }
+    const response = await learnTestAlias(alias)
+    if (!response.ok) {
+      setError(response.message ?? 'No se pudo guardar el alias.')
+      return
+    }
+    setOptions({
+      ...options,
+      aliases: [...options.aliases, {
+        test_id: alias.testId,
+        laboratory_id: alias.laboratoryId,
+        external_name: alias.externalName,
+      }],
+    })
+    setRows((current) => applyLearnedAlias(
+      current,
+      new Map(files.map((item) => [item.key, item.laboratoryId])),
+      alias,
+    ))
+    setNotice(`«${alias.externalName}» quedó guardado como alias para la próxima carga.`)
+  }
+
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
     setDragging(false)
@@ -198,6 +228,7 @@ export function QuickLoadPage() {
       />
       {error && <ErrorState title="Revisa la carga" message={error} />}
       {progress && <p className="catalog-notice" role="status">{progress}</p>}
+      {notice && <p className="catalog-notice" role="status">{notice}</p>}
 
       {loading ? <LoadingState message="Cargando muestras y catálogos…" /> : options && (
         <>
@@ -349,6 +380,11 @@ export function QuickLoadPage() {
                               ))}
                             </select>
                             {row.mappedBy === 'ALIAS' && <small> por alias: {testsById.get(row.mappedTestId)?.code}</small>}
+                            {canLearnAlias(row) && (
+                              <button type="button" onClick={() => void rememberAlias(row)}>
+                                Recordar para la próxima vez
+                              </button>
+                            )}
                             {row.doubts.includes('QUALITATIVE') && !row.excluded && (
                               <label>
                                 <input

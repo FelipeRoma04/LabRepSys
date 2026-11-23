@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { PdfExtractedRow } from '../../lib/pdfAdapter'
 import type { ResultLoadOptions } from '../../types/results'
 import {
+  applyLearnedAlias,
   buildQuickRows,
+  canLearnAlias,
   detectLaboratoryId,
   isDoubtful,
   isRowReady,
@@ -113,5 +115,29 @@ describe('carga rápida: datos que se guardan', () => {
   it('un ensayo elegido a mano se guarda como sugerido, no como exacto', () => {
     const [row] = buildQuickRows('f1', [extracted({ externalParameter: 'Sodio' })], 'lab-agq', aliases)
     expect(toImportDraft({ ...row, mappedTestId: 'test-na', mappedBy: 'USER' }).mapping_status).toBe('SUGGESTED')
+  })
+})
+
+describe('carga rápida: alias aprendidos', () => {
+  it('solo ofrece aprender cuando no había alias y la persona eligió el ensayo', () => {
+    const [row] = buildQuickRows('f1', [extracted({ externalParameter: 'Sodio' })], 'lab-agq', aliases)
+    expect(canLearnAlias(row)).toBe(false)
+    expect(canLearnAlias({ ...row, mappedTestId: 'test-na', mappedBy: 'USER' })).toBe(true)
+    const [safe] = buildQuickRows('f1', [extracted({})], 'lab-agq', aliases)
+    expect(canLearnAlias({ ...safe, mappedBy: 'USER' })).toBe(false)
+  })
+
+  it('aplica el alias nuevo a las demás filas del mismo nombre y laboratorio', () => {
+    const rows = [
+      ...buildQuickRows('f1', [extracted({ externalParameter: 'Sodio' }), extracted({ externalParameter: 'SODIO ' })], 'lab-agq', aliases),
+      ...buildQuickRows('f2', [extracted({ externalParameter: 'Sodio' })], 'lab-iha', aliases),
+    ]
+    rows[0] = { ...rows[0], mappedTestId: 'test-na', mappedBy: 'USER' }
+    const updated = applyLearnedAlias(rows, new Map([['f1', 'lab-agq'], ['f2', 'lab-iha']]),
+      { testId: 'test-na', laboratoryId: 'lab-agq', externalName: 'Sodio' })
+    expect(updated[0]).toMatchObject({ mappedTestId: 'test-na', mappedBy: 'ALIAS' })
+    expect(updated[0].doubts).not.toContain('NO_ALIAS')
+    expect(updated[1]).toMatchObject({ mappedTestId: 'test-na', mappedBy: 'ALIAS' })
+    expect(updated[2]).toMatchObject({ mappedTestId: '', mappedBy: null })
   })
 })
