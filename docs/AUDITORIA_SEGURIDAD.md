@@ -1,6 +1,6 @@
 # Auditoría de Seguridad — LabRepSys
 
-> **Fecha:** 2026-11-20  
+> **Fecha:** 2026-11-20 (revisión estática) · 2026-11-23 (verificación sobre la base de datos; ver «Revisión del 2026-11-23»)  
 > **Alcance:** 26 migraciones SQL (`supabase/migrations/`), código cliente (`src/lib/`, `src/services/`), Edge Function `create-storage-signed-url`.  
 > **Método:** Revisión estática de código (solo lectura). No se ejecutaron consultas contra ningún proyecto de Supabase.  
 > **Convención de severidad:**  
@@ -28,6 +28,148 @@ Se identificaron **8 hallazgos**, ninguno de severidad crítica. Los de mayor im
 | H-07 | 🟢 BAJA | `v_error_summary` y `v_denied_attempts` requieren ADMIN/ADMIN_TECNICO pero la vista no lo fuerza por sí misma |
 | H-08 | 🟢 BAJA | `document_counters` y `excel_import_batches` sin políticas explícitas de SELECT |
 | H-09 | ℹ️ INFO | `pending_decisions` legible por todos los roles activos |
+
+---
+
+## Revisión del 2026-11-23 (verificación sobre la base de datos)
+
+> **Método:** a diferencia de la revisión del 2026-11-20, que fue estática, esta revisión **consulta el catálogo de PostgreSQL**. Se usó un Supabase local aislado con todas las migraciones de `feature/rsa-anulacion` (main + `feature/pruebas-db` + serie DEMO + `void_report`). Además se corrió `npm audit` y se revisó el bundle de producción. **No se corrigió nada**: cada hallazgo trae la corrección propuesta. No se consultó Supabase remoto.
+
+### Resultado de las verificaciones automáticas
+
+| Verificación | Resultado |
+|---|---|
+| Tablas de `public` sin RLS | **Ninguna** |
+| Tablas con RLS sin `FORCE` | 62 (ya reportado en H-01) |
+| Funciones `SECURITY DEFINER` sin `search_path` fijo | **Ninguna** (67 funciones) |
+| `search_path` con esquemas escribibles por usuarios (`$user`, vacío) | **Ninguno** |
+| Políticas `USING (true)` / `WITH CHECK (true)` | **Ninguna** |
+| Vistas de `public` sin `security_invoker` | **Ninguna** |
+| Buckets de Storage públicos | **Ninguno** (los 5 son privados) |
+| Políticas DELETE sobre `storage.objects` | Ninguna: los archivos no se borran desde el cliente |
+| `service_role` o claves secretas en el bundle (`dist/`) | **No aparecen** |
+| Variables de entorno del cliente | Solo `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` y `VITE_BASE_PATH` |
+| `npm audit` | 2 moderadas, 0 altas, 0 críticas (ver N-06) |
+
+### Hallazgos nuevos
+
+| ID | Severidad | Resumen |
+|----|-----------|---------|
+| N-01 | 🟡 MEDIA | Seis funciones `SECURITY DEFINER` del flujo RSA son ejecutables por `anon` |
+| N-02 | 🟡 MEDIA | `anon` y `authenticated` tienen TRUNCATE (y otros privilegios) sobre 28 tablas; TRUNCATE no pasa por RLS |
+| N-03 | 🟡 MEDIA | Los privilegios por defecto del esquema `public` conceden todo a `anon` en cada tabla y función nueva |
+| N-04 | 🟡 MEDIA | La app no declara Content-Security-Policy |
+| N-05 | 🟢 BAJA | La Edge Function de descargas responde CORS a cualquier origen |
+| N-06 | 🟢 BAJA | `exceljs` arrastra `uuid` con una vulnerabilidad moderada |
+| N-07 | ℹ️ INFO | Errores de autorización y de integridad corregidos en ramas pendientes de fusionar |
+
+#### N-01 🟡 MEDIA — Funciones del flujo RSA ejecutables por `anon`
+
+`transition_report`, `issue_report`, `rectify_report`, `save_report_draft`, `add_report_comment` y `get_report_history` tienen `EXECUTE` para `anon`. Por eso se pueden llamar por RPC con la anon key **sin iniciar sesión**. Hoy cada función rechaza la llamada porque no hay usuario activo. Por ejemplo, `transition_report` termina en `log_audit` con «Usuario activo requerido». Sin embargo, la protección depende por completo de la lógica interna, y cualquier cambio futuro que olvide esa validación quedaría expuesto.
+
+Las funciones más nuevas sí revocan el acceso (`revoke … from public, anon`), por ejemplo `void_report`, `learn_test_alias` y las de conciliación.
+
+**Corrección propuesta**, en una migración nueva (firmas verificadas en la base local):
+
+```sql
+revoke execute on function
+  public.transition_report(uuid, text, text),
+  public.issue_report(uuid),
+  public.rectify_report(uuid, text),
+  public.save_report_draft(uuid, uuid, uuid, uuid, uuid[], uuid[]),
+  public.add_report_comment(uuid, text, uuid, text),
+  public.get_report_history(uuid)
+from public, anon;
+```
+
+Además conviene una prueba pgTAP que falle si alguna función `SECURITY DEFINER` de `public` queda ejecutable por `anon`.
+
+#### N-02 🟡 MEDIA — TRUNCATE y otros privilegios de más sobre 28 tablas
+
+`anon` y `authenticated` tienen `TRUNCATE`, `REFERENCES` y `TRIGGER` (y en varias tablas también `INSERT`, `UPDATE` y `DELETE`) sobre 28 tablas y vistas. Entre ellas están `results`, `reports`, `report_snapshots`, `regulations`, `regulation_limits`, `validation_rules` e `import_rows`.
+
+RLS protege SELECT, INSERT, UPDATE y DELETE, pero **TRUNCATE no pasa por RLS**. Hoy no es explotable: PostgREST y GraphQL no exponen TRUNCATE y los clientes no tienen SQL directo. Aun así, es la única barrera, y bastaría una vía de SQL dinámico para vaciar una tabla completa.
+
+En cambio, las tablas de catálogos sí revocan todo y vuelven a conceder solo lo necesario.
+
+**Corrección propuesta:**
+
+```sql
+do $$
+declare t record;
+begin
+  for t in select schemaname, tablename from pg_tables where schemaname = 'public' loop
+    execute format('revoke truncate, references, trigger on %I.%I from anon, authenticated', t.schemaname, t.tablename);
+    execute format('revoke all on %I.%I from anon', t.schemaname, t.tablename);
+  end loop;
+end $$;
+```
+
+Revocar todo a `anon` es seguro porque ninguna política concede acceso a `anon`. Para `authenticated` se mantienen los privilegios de datos que cubren las políticas.
+
+#### N-03 🟡 MEDIA — Privilegios por defecto demasiado amplios
+
+`pg_default_acl` del esquema `public` concede `arwdDxtm` (todo) a `anon` y `authenticated` en cada tabla nueva, y `EXECUTE` en cada función nueva. Esta es la causa raíz de N-01 y N-02: cada migración debe acordarse de revocar.
+
+**Corrección propuesta**, aplicada con el mismo rol que crea los objetos en el proyecto remoto (`postgres`):
+
+```sql
+alter default privileges in schema public revoke all on tables from anon;
+alter default privileges in schema public revoke execute on functions from anon, public;
+alter default privileges in schema public revoke truncate, references, trigger on tables from authenticated;
+```
+
+#### N-04 🟡 MEDIA — Sin Content-Security-Policy
+
+`index.html` no declara CSP, y GitHub Pages no permite cabeceras HTTP propias. Una CSP por etiqueta `meta` limita el daño de un XSS: impide cargar scripts de terceros y enviar datos a otros dominios.
+
+**Propuesta**, para validar en local antes de publicar, reemplazando `<proyecto>`:
+
+```html
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://<proyecto>.supabase.co;
+  connect-src 'self' https://<proyecto>.supabase.co wss://<proyecto>.supabase.co;
+  worker-src 'self' blob:;
+  frame-src 'self' blob: https://<proyecto>.supabase.co;
+  object-src 'none'; base-uri 'self'; form-action 'self'">
+```
+
+- `style-src 'unsafe-inline'` hace falta por los atributos `style` de React.
+- `worker-src blob:` lo necesita el worker de pdfjs.
+- `frame-src` lo necesitan las vistas previas de PDF con URL firmada.
+- `frame-ancestors` no funciona en `meta`, así que la protección contra clickjacking requiere un proxy o CDN que agregue la cabecera.
+
+#### N-05 🟢 BAJA — CORS abierto en `create-storage-signed-url`
+
+La función responde `Access-Control-Allow-Origin: *`. El riesgo es bajo porque exige un JWT válido, perfil activo y rol. Aun así, conviene limitar el origen al dominio de Pages (`https://<usuario>.github.io`) y a `http://localhost:5173` en desarrollo.
+
+#### N-06 🟢 BAJA — `uuid` vulnerable vía `exceljs`
+
+`npm audit` reporta 2 vulnerabilidades moderadas: `uuid` («Missing buffer bounds check in v3/v5/v6 when buf is provided»), que llega por `exceljs`. La app no pasa un `buf` a `uuid` y `exceljs` solo se usa para leer archivos que suben usuarios autenticados. `npm audit fix --force` propone un cambio mayor de `exceljs`.
+
+**Recomendación:** aceptar el riesgo, documentarlo y revisarlo en cada PR de Dependabot. Si aparece una versión compatible de `exceljs`, actualizar.
+
+#### N-07 ℹ️ INFO — Correcciones en ramas pendientes
+
+Estas correcciones ya están hechas en ramas, pero **no están en `main` ni en producción**:
+
+- `feature/pruebas-db` (migración `20261123110000`):
+  - un usuario activo sin rol ya no lee catálogos;
+  - se revocan UPDATE y DELETE a los clientes sobre las 8 tablas del reporte;
+  - el trigger de estado de reportes solo bloquea los UPDATE directos de clientes.
+- `feature/pruebas-db` también agrega las pruebas pgTAP al CI, para detectar regresiones de autorización.
+- `feature/rsa-anulacion` agrega `void_report` con segregación de funciones y auditoría.
+
+Hasta que se fusionen y se apliquen, producción conserva el comportamiento anterior.
+
+### Prioridad sugerida
+
+1. **N-01, N-02 y N-03 en una sola migración**, con una prueba pgTAP que verifique que `anon` no tiene `EXECUTE` sobre funciones `SECURITY DEFINER` ni `TRUNCATE` sobre tablas. Es bajo riesgo y cierra la causa raíz.
+2. **N-04 (CSP)**: probar primero en local, con todas las pantallas, porque una CSP demasiado estricta puede romper la vista previa de PDF.
+3. **N-05 y N-06** cuando se toque la Edge Function o se actualicen dependencias.
 
 ---
 
