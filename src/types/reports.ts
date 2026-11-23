@@ -23,6 +23,9 @@ export interface Report {
   rectification_reason?: string
   /** Emitido con la serie DEMO (todas sus muestras eran DEMO) */
   is_demo?: boolean
+  voided_at?: string
+  voided_by?: string
+  void_reason?: string
   created_at: string
   updated_at: string
 }

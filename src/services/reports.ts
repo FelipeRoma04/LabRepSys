@@ -54,6 +54,25 @@ export async function issueReport(reportId: string): Promise<TransitionResult & 
   return result.data ?? { ok: false }
 }
 
+/** Mínimo de caracteres del motivo de anulación (igual que en void_report) */
+export const VOID_REASON_MIN_LENGTH = 10
+
+/** Anula un reporte emitido (void_report). Rol, segregación y auditoría se validan en el servidor. */
+export async function voidReport(
+  reportId: string,
+  reason: string,
+): Promise<TransitionResult & { code?: string; voided_at?: string }> {
+  if (reason.trim().length < VOID_REASON_MIN_LENGTH) {
+    return { ok: false, message: `Escribe el motivo de la anulación (al menos ${VOID_REASON_MIN_LENGTH} caracteres).` }
+  }
+  const result = await callRpc<TransitionResult & { code?: string; voided_at?: string }>('void_report', {
+    p_report_id: reportId,
+    p_reason: reason.trim(),
+  })
+  if (result.error) return { ok: false, message: result.error.message }
+  return result.data ?? { ok: false }
+}
+
 export async function rectifyReport(
   reportId: string,
   reason: string,

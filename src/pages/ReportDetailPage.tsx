@@ -151,6 +151,17 @@ export function ReportDetailPage() {
       </PageHeader>
       {error && <ErrorState title="No se pudo completar la acción" message={error} />}
 
+      {report.status === 'VOIDED' && (
+        <section className="panel" aria-labelledby="void-title">
+          <h2 id="void-title">Reporte anulado</h2>
+          <dl className="detail-grid">
+            <div><dt>Fecha de anulación</dt><dd>{report.voided_at ? formatDateTime(report.voided_at) : '—'}</dd></div>
+            <div><dt>Anulado por</dt><dd>{report.voided_by ?? '—'}</dd></div>
+            <div><dt>Motivo</dt><dd>{report.void_reason ?? '—'}</dd></div>
+          </dl>
+        </section>
+      )}
+
       <section className="panel">
         <h2>Resumen</h2>
         <dl className="detail-grid">

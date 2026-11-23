@@ -12,7 +12,14 @@ import { LoadingState } from '../components/LoadingState'
 import { StatusBadge } from '../components/StatusBadge'
 import { Modal } from '../components/Modal'
 import { useAuth } from '../hooks/useAuth'
-import { listReports, transitionReport, issueReport, rectifyReport } from '../services/reports'
+import {
+  VOID_REASON_MIN_LENGTH,
+  issueReport,
+  listReports,
+  rectifyReport,
+  transitionReport,
+  voidReport,
+} from '../services/reports'
 import { formatDateTime } from '../lib/format'
 import { REPORT_STATUS_LABELS } from '../types/reports'
 import type { Report, ReportStatus } from '../types/reports'
@@ -49,6 +56,11 @@ export function ReportListPage({ statusFilter, title, description }: Props) {
   const [rectifyTarget, setRectifyTarget] = useState<Report | null>(null)
   const [rectifyReason, setRectifyReason] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Modal anulación
+  const [voidTarget, setVoidTarget] = useState<Report | null>(null)
+  const [voidReason, setVoidReason] = useState('')
+  const [voidError, setVoidError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -87,6 +99,18 @@ export function ReportListPage({ statusFilter, title, description }: Props) {
     setRectifyReason('')
     await load()
   }, [rectifyTarget, rectifyReason, load])
+
+  const handleVoid = useCallback(async () => {
+    if (!voidTarget) return
+    setSaving(true)
+    setVoidError(null)
+    const res = await voidReport(voidTarget.id, voidReason)
+    setSaving(false)
+    if (!res.ok) { setVoidError(res.message ?? 'No se pudo anular.'); return }
+    setVoidTarget(null)
+    setVoidReason('')
+    await load()
+  }, [voidTarget, voidReason, load])
 
   const columns: DataTableColumn<Report>[] = [
     {
@@ -136,6 +160,15 @@ export function ReportListPage({ statusFilter, title, description }: Props) {
           </button>
         )}
 
+        {r.status === 'ISSUED' && isJTC && (
+          <button
+            className="btn btn-sm btn-danger"
+            onClick={() => { setVoidTarget(r); setVoidReason(''); setVoidError(null) }}
+            type="button"
+          >
+            Anular
+          </button>
+        )}
         {/* Rectificar */}
         {r.status === 'ISSUED' && (isJTC || isAdmin) && (
           <button className="btn btn-sm btn-warning" onClick={() => { setRectifyTarget(r); setRectifyReason('') }} type="button">
@@ -173,6 +206,38 @@ export function ReportListPage({ statusFilter, title, description }: Props) {
 
       {!loading && !loadError && reports.length > 0 && (
         <DataTable caption="Reportes" columns={columns} rows={reports} rowKey={(r) => r.id} />
+      )}
+
+      {voidTarget && (
+        <Modal open title="Anular reporte emitido" onClose={() => setVoidTarget(null)}>
+          <p>
+            El reporte {voidTarget.code ?? ''} pasará a ANULADO. Se conservan su número, su contenido
+            y su registro; la anulación no se puede deshacer.
+          </p>
+          <label>
+            Motivo de la anulación *
+            <textarea
+              rows={3}
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="Describe por qué se anula el reporte…"
+            />
+          </label>
+          {voidError && <ErrorState message={voidError} />}
+          <div className="modal-actions">
+            <button
+              className="btn btn-danger"
+              onClick={() => void handleVoid()}
+              disabled={saving || voidReason.trim().length < VOID_REASON_MIN_LENGTH}
+              type="button"
+            >
+              {saving ? 'Procesando…' : 'Confirmar anulación'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => setVoidTarget(null)} type="button">
+              Cancelar
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* Modal rectificación */}
