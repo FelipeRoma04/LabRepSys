@@ -8,15 +8,14 @@ on:
     branches:
       - main
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   # ── 1. Lint, typecheck, test y build ──────────────────────────────────────
   build:
     name: Lint · Typecheck · Test · Build
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -64,116 +63,86 @@ jobs:
   secrets-scan:
     name: Detección de secretos (Gitleaks)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0  # Gitleaks necesita el historial completo
 
-      - name: Ejecutar Gitleaks
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_COMMENTS: 'false'
+      - name: Descargar Gitleaks CLI verificado
+        shell: bash
+        run: |
+          version=8.30.1
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+          curl --fail --location --silent --show-error \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}" \
+            --output "${RUNNER_TEMP}/${archive}"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  ${RUNNER_TEMP}/${archive}" \
+            | sha256sum --check --status
+          tar --extract --gzip --file "${RUNNER_TEMP}/${archive}" --directory "${RUNNER_TEMP}" gitleaks
+          sudo install --mode 0755 "${RUNNER_TEMP}/gitleaks" /usr/local/bin/gitleaks
+
+      - name: Escanear secretos del historial
+        run: gitleaks git --redact --exit-code 1 --log-opts="--all" .
 
   # ── 3. Validar migraciones de Supabase ────────────────────────────────────
   validate-migrations:
-    name: Validar migraciones SQL
+    name: Validar migraciones y RLS en Supabase local
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: labtest
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Instalar cliente Supabase
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3
+        with:
+          version: 2.120.0
+
+      - name: Iniciar PostgreSQL temporal
+        run: supabase db start
+
+      - name: Aplicar todas las migraciones sin datos semilla
+        run: supabase db reset --local --no-seed
+
+      - name: Validar funciones SQL
+        run: supabase db lint --local --schema public --fail-on error
+
       - name: Instalar cliente PostgreSQL
-        run: sudo apt-get install -y postgresql-client
-
-      - name: Aplicar extensiones mínimas (stub de auth)
-        run: |
-          psql postgresql://postgres:postgres@localhost:5432/labtest -c "
-            CREATE SCHEMA IF NOT EXISTS auth;
-            CREATE SCHEMA IF NOT EXISTS extensions;
-            CREATE SCHEMA IF NOT EXISTS storage;
-
-            -- Roles que Supabase trae de fábrica. Sin ellos, los bloques que
-            -- hacen GRANT/REVOKE o CREATE POLICY ... TO authenticated fallan
-            -- completos y dejan tablas sin RLS.
-            DO \$\$
-            BEGIN
-              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
-              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
-              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN BYPASSRLS; END IF;
-            END
-            \$\$;
-
-            -- Stub mínimo de auth.users para las migraciones
-            CREATE TABLE IF NOT EXISTS auth.users (
-              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-              email text,
-              raw_user_meta_data jsonb
-            );
-
-            -- Stub mínimo de auth.uid()
-            CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
-            LANGUAGE sql STABLE AS \$\$ SELECT NULL::uuid \$\$;
-
-            -- Stub mínimo de storage.buckets / storage.objects
-            CREATE TABLE IF NOT EXISTS storage.buckets (
-              id text PRIMARY KEY,
-              name text,
-              public boolean
-            );
-            CREATE TABLE IF NOT EXISTS storage.objects (
-              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-              bucket_id text,
-              name text
-            );
-          "
-
-      - name: Aplicar migraciones en orden
-        run: |
-          for f in $(ls supabase/migrations/*.sql | sort); do
-            echo "Aplicando: $f"
-            psql postgresql://postgres:postgres@localhost:5432/labtest -f "$f"
-          done
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
       - name: Verificar que todas las tablas public tienen RLS activo
+        shell: bash
         run: |
-          TABLAS_SIN_RLS=$(psql postgresql://postgres:postgres@localhost:5432/labtest -t -A -c "
-            SELECT c.relname
-            FROM pg_class c
-            JOIN pg_namespace n ON n.oid = c.relnamespace
+          set -euo pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE tables_without_rls text;
+          BEGIN
+            SELECT string_agg(format('%I.%I', n.nspname, c.relname), ', ' ORDER BY c.relname)
+            INTO tables_without_rls
+            FROM pg_class AS c
+            JOIN pg_namespace AS n ON n.oid = c.relnamespace
             WHERE n.nspname = 'public'
-              AND c.relkind = 'r'
+              AND c.relkind IN ('r', 'p')
               AND NOT c.relrowsecurity;
-          ")
-          if [ -n "$TABLAS_SIN_RLS" ]; then
-            echo "ERROR: Las siguientes tablas no tienen RLS activo:"
-            echo "$TABLAS_SIN_RLS"
-            exit 1
-          fi
-          echo "OK: Todas las tablas public tienen RLS activo."
 
-  lint-supabase-db:
-    name: Lint opcional de Supabase (base local)
-    if: ${{ vars.RUN_SUPABASE_DB_LINT == 'true' }}
+            IF tables_without_rls IS NOT NULL THEN
+              RAISE EXCEPTION 'Public tables without RLS: %', tables_without_rls;
+            END IF;
+          END
+          $$;
+          SQL
+
+      - name: Detener Supabase local
+        if: always()
+        run: supabase stop --no-backup
+
+  # E2E se activa sólo con una variable explícita y un proyecto Supabase aislado.
+  # Nunca apunta a producción.
+  e2e:
+    name: Pruebas E2E (Supabase de prueba)
+    needs: build
+    if: ${{ vars.RUN_E2E == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -185,9 +154,75 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+          cache: npm
 
-      - name: Iniciar Supabase local (requiere Docker)
-        run: npx --yes supabase start
+      - name: Instalar dependencias
+        run: npm ci
 
-      - name: Analizar SQL de la base local
-        run: npx --yes supabase db lint --fail-on error
+      - name: Validar destino E2E (no producción)
+        shell: bash
+        env:
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+        run: |
+          if [[ ! "$E2E_SUPABASE_URL" =~ ^https://[a-z0-9]{20}\.supabase\.co/?$ ]]; then
+            echo "E2E_SUPABASE_URL debe ser el URL de un proyecto Supabase de prueba."
+            exit 1
+          fi
+          project_ref="${E2E_SUPABASE_URL#https://}"
+          project_ref="${project_ref%%.*}"
+          if [[ "$project_ref" == "yhieruklrmbsirhvobcr" ]]; then
+            echo "El proyecto de producción está bloqueado para E2E."
+            exit 1
+          fi
+
+      - name: Instalar navegadores Playwright
+        run: npx playwright install chromium firefox --with-deps
+
+      - name: Compilar la app para el proyecto de prueba
+        run: npm run build
+        env:
+          VITE_BASE_PATH: /
+          VITE_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+
+      - name: Iniciar preview local
+        shell: bash
+        run: |
+          npx vite preview --host 127.0.0.1 --port 4173 > /tmp/labrepsys-preview.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/labrepsys-preview.log
+          exit 1
+
+      - name: Ejecutar E2E
+        run: npm run e2e
+        env:
+          CI: true
+          E2E_BASE_URL: http://127.0.0.1:4173/
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_ANALISTA_EMAIL: ${{ secrets.E2E_ANALISTA_EMAIL }}
+          E2E_ANALISTA_PASSWORD: ${{ secrets.E2E_ANALISTA_PASSWORD }}
+          E2E_JTC_EMAIL: ${{ secrets.E2E_JTC_EMAIL }}
+          E2E_JTC_PASSWORD: ${{ secrets.E2E_JTC_PASSWORD }}
+          E2E_RECEPCION_EMAIL: ${{ secrets.E2E_RECEPCION_EMAIL }}
+          E2E_RECEPCION_PASSWORD: ${{ secrets.E2E_RECEPCION_PASSWORD }}
+          E2E_AUDITOR_EMAIL: ${{ secrets.E2E_AUDITOR_EMAIL }}
+          E2E_AUDITOR_PASSWORD: ${{ secrets.E2E_AUDITOR_PASSWORD }}
+          E2E_DEMO_CLIENT_ID: ${{ secrets.E2E_DEMO_CLIENT_ID }}
+          E2E_DEMO_CONTACT_ID: ${{ secrets.E2E_DEMO_CONTACT_ID }}
+          E2E_DEMO_QUOTE_ID: ${{ secrets.E2E_DEMO_QUOTE_ID }}
+
+      - name: Publicar reporte Playwright
+        uses: actions/upload-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        if: always()
+        with:
+          name: playwright-report
+          path: e2e-report/
+          retention-days: 14

@@ -1,37 +1,45 @@
-# Flujo de contraseñas
+# Correo de invitación y recuperación de contraseña
 
-| Ruta | Para qué |
+El flujo de la aplicación permite solicitar un enlace, confirmar el token y establecer una contraseña. Las plantillas HTML de Supabase están versionadas en `supabase/templates/`:
+
+- `recovery.html`: recuperación de contraseña.
+- `invite.html`: crear contraseña al aceptar una invitación.
+- `password_changed_notification.html`: aviso después de cambiar la contraseña.
+
+La configuración está en `supabase/config.toml`. El proyecto de LabRepSys es `yhieruklrmbsirhvobcr`. La URL de retorno de Pages ya se actualizó en producción. Supabase rechazó la publicación de asuntos y cuerpos HTML porque el proyecto usa el proveedor de correo predeterminado del plan Free; esas plantillas están versionadas, pero aún no están activas.
+
+## Habilitar plantillas en producción
+
+Para que los correos de invitación y recuperación usen estas plantillas en español, configura un proveedor SMTP propio en **Authentication → SMTP Settings** o habilita la función de plantillas en el plan del proyecto. No guardes credenciales SMTP en el repositorio. Después de configurar el proveedor, revisa el diff con `supabase config diff --project-ref yhieruklrmbsirhvobcr` y publica con `supabase config push --project-ref yhieruklrmbsirhvobcr`.
+
+Con el proveedor predeterminado, Supabase conserva su remitente y plantilla estándar en inglés. La aplicación permite completar el flujo, pero no puede cambiar el cuerpo de ese correo.
+
+## URLs de Auth
+
+En Supabase Dashboard, en **Authentication → URL Configuration**:
+
+- **Site URL:** `https://feliperoma04.github.io/LabRepSys`
+- **Redirect URLs:** `https://feliperoma04.github.io/LabRepSys/**` y `http://localhost:5173/**` para desarrollo.
+
+El enlace de recuperación usa `{{ .RedirectTo }}`, que la app fija a `#/auth/confirm`. El de invitación usa `{{ .SiteURL }}/#/auth/confirm`. Ambos pasan `token_hash` y el tipo correspondiente (`recovery` o `invite`). La aplicación muestra un botón **Continuar** y solo canjea el token cuando la persona lo pulsa; así los escáneres automáticos no consumen el enlace.
+
+## Flujo y mensajes
+
+| Ruta | Función |
 |---|---|
-| `#/auth/confirm?token_hash=…&type=invite\|recovery` | Destino de los correos. Muestra un botón **Continuar**, y el token se canjea (`verifyOtp`) solo al pulsarlo. Así, los filtros de correo que abren el enlace para inspeccionarlo no gastan el token de un solo uso. |
-| `#/auth/set-password` | Crear la contraseña (invitación) o cambiarla (recuperación). Exige una sesión válida. |
-| `#/forgot-password` | Pedir el correo de recuperación. La respuesta es siempre la misma, exista o no la cuenta. |
-| `#/login` | Inicio de sesión con mensaje genérico ante cualquier fallo y enlace a «¿Olvidaste tu contraseña?». |
+| `#/forgot-password` | Solicita el correo de recuperación. La respuesta no revela si la cuenta existe. |
+| `#/auth/confirm` | Valida el enlace al pulsar **Continuar**. |
+| `#/auth/set-password` | Recibe la nueva contraseña y la confirma. |
+| `#/login` | Inicia sesión y ofrece el enlace de recuperación. |
 
-## Reglas
+Los enlaces usados, vencidos o inválidos muestran la opción de solicitar uno nuevo. El formulario exige mínimo 8 caracteres, limita a 72 bytes y no permite espacios al inicio o final. Los errores de correo y límites de envío no revelan información de la cuenta.
 
-- **Mensajes genéricos.** Ningún mensaje revela si un correo existe, si se alcanzó el límite de envíos ni detalles internos. Solo los fallos de red se informan como tales.
-- **Contraseña:** mínimo 8 caracteres, máximo 72 bytes (límite de bcrypt), sin espacios al inicio ni al final. Si Supabase tiene una política más estricta, su error `weak_password` se traduce al usuario.
-- El token sale de la barra de direcciones al canjearlo (`navigate(..., { replace: true })`).
-- Se mantiene la compatibilidad con los enlaces antiguos de flujo implícito (`#access_token=…`) en `LoginPage`, hasta que todas las invitaciones viejas venzan.
+## Verificación manual
 
-## Configuración en Supabase (la hace el administrador; el código no la aplica)
+1. Desde el login, solicita recuperación para una cuenta de prueba. Una vez activado SMTP o la función de plantillas, el correo debe llegar en español con el asunto **Restablece tu contraseña de LabRepSys**.
+2. Abre el correo y pulsa **Crear contraseña nueva**; confirma que la URL lleva a LabRepSys y muestra la pantalla de confirmación.
+3. Pulsa **Continuar**, establece la contraseña y vuelve a iniciar sesión.
+4. Prueba un enlace vencido o usado; debe permitir pedir uno nuevo.
+5. Para invitaciones, verifica el asunto **Crea tu contraseña de LabRepSys** y el mismo flujo con el mensaje de activación.
 
-En **Authentication → URL Configuration**:
-
-- **Site URL:** `https://feliperoma04.github.io/LabRepSys/`
-- **Redirect URLs:** agrega `https://feliperoma04.github.io/LabRepSys/**` y, para desarrollo, `http://localhost:5173/**`.
-
-En **Authentication → Email Templates**, cambia el enlace de estas plantillas:
-
-| Plantilla | Enlace |
-|---|---|
-| Invite user | `{{ .SiteURL }}#/auth/confirm?token_hash={{ .TokenHash }}&type=invite` |
-| Reset password | `{{ .SiteURL }}#/auth/confirm?token_hash={{ .TokenHash }}&type=recovery` |
-
-La Site URL debe terminar en `/`, para que quede `…/LabRepSys/#/auth/confirm`. Usa `{{ .TokenHash }}`, no `{{ .ConfirmationURL }}`: este último canjea el token en el servidor de Supabase al abrirse, y eso anula la protección del botón.
-
-## Prueba manual tras configurar
-
-1. Invita a un usuario de prueba y abre el correo. El enlace debe llevar a «Activar tu cuenta»; al pulsar **Continuar**, debe pasar a «Crear contraseña».
-2. Abre el mismo enlace por segunda vez. Debe mostrar el mensaje de enlace no válido o vencido.
-3. En «¿Olvidaste tu contraseña?», prueba con un correo inexistente y con uno real. Ambos deben mostrar el mismo mensaje, y solo el real recibe correo.
+No ejecutes estas pruebas con cuentas o enlaces de otras personas.

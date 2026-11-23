@@ -1,6 +1,6 @@
 # Estado de implementación
 
-Revision: 2026-10-20. Se retiraron p01-p12 completos; p13-p14 y A01-A07 quedan por trabajo pendiente, p99 por contexto. Las specs K01-K06, el codigo y las migraciones siguen como evidencia.
+Revision: 2026-11-20. El codigo y las migraciones estan desplegados en main; A03, A06 y A07 conservan verificaciones manuales pendientes.
 
 ## Límite de trazabilidad
 
@@ -30,13 +30,13 @@ Revision: 2026-10-20. Se retiraron p01-p12 completos; p13-p14 y A01-A07 quedan p
 
 | Tarea | Estado | Pendiente / evidencia |
 |---|---|---|
-| A01 Adaptadores PDF | Implementada (rama `feature/a01-adaptadores-pdf`, pendiente de PR) | Adaptadores AGQ, Chemilab e IHA con pdfjs-dist, probados contra fixtures anonimizados de los 3 informes de referencia (40, 9 y 1 filas). Conectados a la carga de resultados: página de origen, marcas y observaciones por fila; nada se confirma solo. Ver `docs/ADAPTADORES_PDF.md`. |
+| A01 Adaptadores PDF | Integrada en `main` | Adaptadores AGQ, Chemilab e IHA con pdfjs-dist, probados contra fixtures anonimizados de los 3 informes de referencia (40, 9 y 1 filas). Conectados a la carga de resultados: página de origen, marcas y observaciones por fila; nada se confirma solo. Ver `docs/ADAPTADORES_PDF.md`. |
 | A02 PDF servidor | Bloqueada por especificacion/decision | Falta la seccion 9 de `ESPECIFICACION_v0_2.md` y sigue DP-022 sobre libreria/licencia. La impresion del navegador permanece disponible. |
-| A03 E2E Playwright | Pendiente de entorno aislado | No hay Playwright ni proyecto Supabase dedicado con usuarios demo. La lista manual esta en `TEST_REPORT.md`; no usar datos reales. |
-| A04 Busqueda global | No implementada | Requiere rama propia segun `PROMPTS CODEX/AGENTS.md`; la rama activa es `feature/a05-importacion-excel`. |
+| A03 E2E Playwright | Suite integrada; ejecucion pendiente de entorno aislado | Specs y job CI listos; requiere un proyecto Supabase de prueba, usuarios demo y variable RUN_E2E=true. Nunca ejecutar contra produccion. |
+| A04 Búsqueda global | Integrada en `main` | Buscador compartido en `src/layouts/AppLayout.tsx`; cubierto por pruebas unitarias. |
 | A05 Importacion Excel | Parcial, pruebas verdes | Importa ensayos/muestras, valida filas, calcula hash, audita y marca observaciones de laboratorio externo para estructuracion manual. Falta el mapeo aprobado de las hojas `LABORATORIO` y `REPORTES`; no se interpreta ni se importa a entidades por suposicion. |
-| A06 Accesibilidad | Parcial | `docs/ACCESIBILIDAD.md` registra correcciones y las rutas pendientes de axe, teclado, lector de pantalla y pruebas a 390/768 px. |
-| A07 CI/CD y respaldo | Parcial | CI, Pages, gitleaks y script de respaldo existen. `.github/dependabot.yml` tiene `updates: []`; faltan dependabot semanal, `supabase db lint` y pin de acciones por SHA. |
+| A06 Accesibilidad | Parcial | Componentes compartidos con foco e IDs accesibles y pruebas axe; sigue pendiente la revisión visual a 390/768/1280 px, teclado y lector de pantalla. |
+| A07 CI/CD y respaldo | Parcial | CI, Pages, Gitleaks, Dependabot semanal, lint SQL y backup seguro integrados; la restauracion a un proyecto vacio sigue pendiente de validar. |
 
 Los prompts A01-A07 se conservan mientras haya trabajo pendiente. Se retiraran cuando cada tarea este completa y validada.
 

@@ -947,12 +947,13 @@
   .sidebar {
     visibility: hidden;
     transform: translateX(-100%);
-    transition: transform 160ms ease;
+    transition: transform 160ms ease, visibility 0s linear 160ms;
   }
 
   .sidebar.sidebar-open {
     visibility: visible;
     transform: translateX(0);
+    transition-delay: 0s;
   }
 
   .app-main {

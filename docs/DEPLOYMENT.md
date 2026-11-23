@@ -1,6 +1,6 @@
 # Guía de Despliegue — LabRepSys
 
-> **Última revisión:** 2026-10-19
+> **Ultima revision:** 2026-11-20
 
 ---
 
@@ -106,7 +106,7 @@ Verifica que los secretos `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVIC
 
 ### Despliegue automático
 
-El workflow `deploy.yml` se ejecuta automáticamente al hacer push a `main`. También puedes dispararlo manualmente desde **Actions → Publicar en GitHub Pages → Run workflow**.
+El workflow `deploy.yml` se ejecuta automáticamente al hacer push a `main`. También puedes dispararlo manualmente desde **Actions → Publicar en GitHub Pages → Run workflow**. Las GitHub Actions están fijadas a SHA completos; Dependabot revisa actualizaciones semanalmente.
 
 El workflow:
 1. Instala dependencias (`npm ci`)
@@ -119,7 +119,7 @@ El workflow:
 
 ## Integración continua (CI)
 
-El workflow `ci.yml` se ejecuta en cada Pull Request y push a `main`:
+El workflow `ci.yml` se ejecuta en cada Pull Request y push a `main`. Necesita Docker disponible en el runner para iniciar Supabase local; no usa credenciales ni datos del proyecto remoto:
 
 | Paso | Falla si... |
 |------|-------------|
@@ -129,11 +129,11 @@ El workflow `ci.yml` se ejecuta en cada Pull Request y push a `main`:
 | Build | La compilación falla |
 | Verificación bundle | `service_role` aparece en `dist/` |
 | npm audit | Hay vulnerabilidades de nivel **alto** o **crítico** |
-| Gitleaks | Se detecta algún secreto en el historial de git |
-| Validación SQL | Alguna migración falla o hay tablas sin RLS |
+| Gitleaks CLI | Se detecta algún secreto en el historial de git; la descarga del binario se verifica por SHA-256 |
+| PostgreSQL temporal | Una migración falla, `supabase db lint` detecta errores o alguna tabla `public` no tiene RLS |
 
 > [!TIP]
-> Para ejecutar el CI localmente antes de hacer push:
+> Para ejecutar las verificaciones de aplicación localmente antes de hacer push:
 > ```bash
 > npm run lint
 > npx tsc --noEmit
@@ -142,22 +142,7 @@ El workflow `ci.yml` se ejecuta en cada Pull Request y push a `main`:
 > npm audit --audit-level=high
 > ```
 
-### Lint opcional de Supabase en CI
-
-El job `lint-supabase-db` se ejecuta solo cuando la variable de repositorio
-`RUN_SUPABASE_DB_LINT` se configura con el valor `true` en **Settings > Secrets and
-variables > Actions > Variables**. El job inicia Supabase local con `supabase start`
-y ejecuta `supabase db lint --fail-on error`. Requiere Docker disponible en el runner
-y un proyecto Supabase local funcional.
-
-El job no inicia sesion ni enlaza un proyecto remoto: el lint se dirige a la base
-local. No agregues `--remote` ni credenciales de produccion a este job.
-
-Dependabot revisa semanalmente npm y GitHub Actions, agrupa actualizaciones
-minor/patch y limita a cinco PRs abiertos por ecosistema. Las acciones de CI y Pages
-estan fijadas a commits completos verificados con comentarios que indican su version.
-Los permisos del token se limitan por job: lectura para CI/build y solo `pages: write`
-e `id-token: write` para publicar en Pages.
+> La verificación SQL de CI usa un PostgreSQL local de Supabase y Docker: `supabase db start`, `supabase db reset --local --no-seed` y `supabase db lint --local --schema public --fail-on error`. La comprobación de RLS corre sobre esa base temporal.
 
 ---
 

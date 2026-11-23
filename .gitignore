@@ -59,3 +59,6 @@ datos-reales/
 *.xlsb
 *.pdf
 # Excepción: fixtures de prueba anonimizados en texto (no PDF)
+e2e-report/
+e2e-results/
+.env.e2e
