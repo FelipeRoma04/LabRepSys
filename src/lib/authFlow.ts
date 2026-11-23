@@ -23,6 +23,49 @@ export function parseConfirmLink(search: string): ConfirmLinkParams | null {
 }
 
 /**
+ * Con la plantilla de correo por defecto, Supabase canjea el enlace en su
+ * servidor y redirige con los tokens (o el error) en un fragmento propio. Como
+ * la app usa HashRouter, la URL queda con dos «#»:
+ *   /#/auth/confirm#access_token=…&refresh_token=…&type=recovery
+ *   /#/auth/confirm#error=access_denied&error_code=otp_expired&error_description=…
+ * HashRouter entrega ese segundo fragmento en location.hash.
+ */
+export type ConfirmFragment =
+  | { kind: 'session'; accessToken: string; refreshToken: string; type: string | null }
+  | { kind: 'error'; error: string | null; errorCode: string | null; description: string | null }
+
+/** Lee tokens o error del fragmento (location.hash) o del query de la ruta */
+export function parseConfirmFragment(value: string): ConfirmFragment | null {
+  const raw = value.startsWith('#') || value.startsWith('?') ? value.slice(1) : value
+  if (!raw) return null
+  const params = new URLSearchParams(raw)
+  const error = params.get('error')
+  const errorCode = params.get('error_code')
+  if (error || errorCode) {
+    return { kind: 'error', error, errorCode, description: params.get('error_description') }
+  }
+  const accessToken = params.get('access_token')?.trim()
+  const refreshToken = params.get('refresh_token')?.trim()
+  if (accessToken && refreshToken) {
+    return { kind: 'session', accessToken, refreshToken, type: params.get('type') }
+  }
+  return null
+}
+
+/** Propósito de /auth/set-password según el type del enlace */
+export function purposeFromLinkType(type: string | null): EmailOtpType | undefined {
+  return type === 'invite' || type === 'recovery' ? type : undefined
+}
+
+export const EXPIRED_LINK_MESSAGE =
+  'El enlace ya venció o ya se usó. Por seguridad, cada enlace sirve una sola vez y por tiempo limitado. Solicita uno nuevo desde «¿Olvidaste tu contraseña?».'
+
+/** Mensaje claro para errores que Supabase devuelve en el enlace */
+export function confirmFragmentErrorMessage(errorCode: string | null): string {
+  return errorCode === 'otp_expired' ? EXPIRED_LINK_MESSAGE : INVALID_LINK_MESSAGE
+}
+
+/**
  * URL a la que Supabase redirige el correo de recuperación cuando la plantilla
  * usa {{ .RedirectTo }}. Conserva el subdirectorio de GitHub Pages (/LabRepSys/).
  */

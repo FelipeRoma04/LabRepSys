@@ -24,6 +24,12 @@ export async function verifyEmailLink(tokenHash: string, type: EmailOtpType): Pr
   if (error) throw error
 }
 
+/** Abre la sesión con los tokens que Supabase entrega en el fragmento del enlace */
+export async function setSessionFromLink(accessToken: string, refreshToken: string): Promise<void> {
+  const { error } = await client().auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+  if (error) throw error
+}
+
 /**
  * Pide el correo de recuperación. Solo propaga errores de red: cualquier otro
  * resultado (correo inexistente, límite de envíos) se trata como éxito para

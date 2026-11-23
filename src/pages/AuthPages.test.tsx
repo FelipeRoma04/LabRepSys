@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { GENERIC_RESET_MESSAGE, INVALID_LINK_MESSAGE } from '../lib/authFlow'
+import { EXPIRED_LINK_MESSAGE, GENERIC_RESET_MESSAGE, INVALID_LINK_MESSAGE } from '../lib/authFlow'
 import { AuthConfirmPage } from './AuthConfirmPage'
 import { ForgotPasswordPage } from './ForgotPasswordPage'
 import { SetPasswordPage } from './SetPasswordPage'
@@ -10,6 +10,7 @@ import { SetPasswordPage } from './SetPasswordPage'
 const mocks = vi.hoisted(() => ({
   status: 'authenticated' as 'loading' | 'authenticated' | 'anonymous' | 'inactive' | 'error',
   verifyEmailLink: vi.fn(),
+  setSessionFromLink: vi.fn(),
   requestPasswordReset: vi.fn(),
   updatePassword: vi.fn(),
 }))
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../hooks/useAuth', () => ({ useAuth: () => ({ status: mocks.status }) }))
 vi.mock('../services/auth', () => ({
   verifyEmailLink: mocks.verifyEmailLink,
+  setSessionFromLink: mocks.setSessionFromLink,
   requestPasswordReset: mocks.requestPasswordReset,
   updatePassword: mocks.updatePassword,
 }))
@@ -39,8 +41,68 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.status = 'authenticated'
   mocks.verifyEmailLink.mockResolvedValue(undefined)
+  mocks.setSessionFromLink.mockResolvedValue(undefined)
   mocks.requestPasswordReset.mockResolvedValue(undefined)
   mocks.updatePassword.mockResolvedValue(undefined)
+})
+
+describe('/auth/confirm con la plantilla por defecto de Supabase (doble #)', () => {
+  it('abre la sesión con los tokens, los quita de la URL y sigue a set-password', async () => {
+    const replaceState = vi.spyOn(window.history, 'replaceState')
+    renderAt('/auth/confirm#access_token=at-1&refresh_token=rt-1&expires_in=3600&token_type=bearer&type=recovery')
+
+    expect(await screen.findByRole('heading', { name: 'Cambiar contraseña' })).toBeInTheDocument()
+    expect(mocks.setSessionFromLink).toHaveBeenCalledWith('at-1', 'rt-1')
+    expect(mocks.verifyEmailLink).not.toHaveBeenCalled()
+    const strippedUrl = String(replaceState.mock.calls[0]?.[2])
+    expect(strippedUrl).toMatch(/#\/auth\/confirm$/)
+    expect(strippedUrl).not.toContain('access_token')
+    replaceState.mockRestore()
+  })
+
+  it('funciona con HashRouter y la URL real con dos #', async () => {
+    window.history.replaceState(null, '', '/LabRepSys/#/auth/confirm#access_token=at-h&refresh_token=rt-h&type=recovery')
+    render(
+      <HashRouter>
+        <Routes>
+          <Route path="/auth/confirm" element={<AuthConfirmPage />} />
+          <Route path="/auth/set-password" element={<SetPasswordPage />} />
+        </Routes>
+      </HashRouter>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Cambiar contraseña' })).toBeInTheDocument()
+    expect(mocks.setSessionFromLink).toHaveBeenCalledWith('at-h', 'rt-h')
+    expect(window.location.href).not.toContain('access_token')
+    expect(window.location.hash).toBe('#/auth/set-password')
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('usa el propósito de invitación cuando el enlace es type=invite', async () => {
+    renderAt('/auth/confirm#access_token=at-2&refresh_token=rt-2&type=invite')
+    expect(await screen.findByRole('heading', { name: 'Crear contraseña' })).toBeInTheDocument()
+  })
+
+  it('explica que el enlace venció cuando llega error_code=otp_expired', () => {
+    renderAt('/auth/confirm#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired')
+
+    expect(screen.getByText(EXPIRED_LINK_MESSAGE)).toBeInTheDocument()
+    expect(mocks.setSessionFromLink).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Continuar' })).not.toBeInTheDocument()
+  })
+
+  it('usa el mensaje genérico para otros errores del enlace', () => {
+    renderAt('/auth/confirm#error=access_denied&error_description=Something+else')
+    expect(screen.getByText(INVALID_LINK_MESSAGE)).toBeInTheDocument()
+  })
+
+  it('muestra el mensaje genérico si Supabase rechaza los tokens', async () => {
+    mocks.setSessionFromLink.mockRejectedValue(new Error('Invalid Refresh Token'))
+    renderAt('/auth/confirm#access_token=malo&refresh_token=malo&type=recovery')
+
+    expect(await screen.findByText(INVALID_LINK_MESSAGE)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Cambiar contraseña' })).not.toBeInTheDocument()
+  })
 })
 
 describe('/auth/confirm', () => {

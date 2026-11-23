@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  EXPIRED_LINK_MESSAGE,
+  INVALID_LINK_MESSAGE,
+  confirmFragmentErrorMessage,
+  parseConfirmFragment,
+  purposeFromLinkType,
   confirmRedirectUrl,
   isNetworkError,
   parseConfirmLink,
@@ -18,6 +23,37 @@ describe('parseConfirmLink', () => {
     expect(parseConfirmLink('?type=invite')).toBeNull()
     expect(parseConfirmLink('?token_hash=abc&type=magiclink')).toBeNull()
     expect(parseConfirmLink('?token_hash=%20%20&type=invite')).toBeNull()
+  })
+})
+
+describe('parseConfirmFragment', () => {
+  it('lee los tokens del segundo fragmento de la plantilla por defecto', () => {
+    expect(parseConfirmFragment('#access_token=at&refresh_token=rt&expires_in=3600&type=recovery')).toEqual({
+      kind: 'session', accessToken: 'at', refreshToken: 'rt', type: 'recovery',
+    })
+  })
+
+  it('lee el error que Supabase devuelve en el fragmento', () => {
+    expect(parseConfirmFragment('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired')).toEqual({
+      kind: 'error', error: 'access_denied', errorCode: 'otp_expired', description: 'Email link is invalid or has expired',
+    })
+  })
+
+  it('ignora fragmentos vacíos o sin tokens completos', () => {
+    expect(parseConfirmFragment('')).toBeNull()
+    expect(parseConfirmFragment('#access_token=solo')).toBeNull()
+    expect(parseConfirmFragment('?token_hash=h&type=invite')).toBeNull()
+  })
+
+  it('traduce otp_expired a un mensaje de enlace vencido', () => {
+    expect(confirmFragmentErrorMessage('otp_expired')).toBe(EXPIRED_LINK_MESSAGE)
+    expect(confirmFragmentErrorMessage(null)).toBe(INVALID_LINK_MESSAGE)
+  })
+
+  it('solo acepta invite y recovery como propósito', () => {
+    expect(purposeFromLinkType('invite')).toBe('invite')
+    expect(purposeFromLinkType('recovery')).toBe('recovery')
+    expect(purposeFromLinkType('magiclink')).toBeUndefined()
   })
 })
 

@@ -23,6 +23,15 @@ En Supabase Dashboard, en **Authentication → URL Configuration**:
 
 El enlace de recuperación usa `{{ .RedirectTo }}`, que la app fija a `#/auth/confirm`. El de invitación usa `{{ .SiteURL }}/#/auth/confirm`. Ambos pasan `token_hash` y el tipo correspondiente (`recovery` o `invite`). La aplicación muestra un botón **Continuar** y solo canjea el token cuando la persona lo pulsa; así los escáneres automáticos no consumen el enlace.
 
+### Enlaces de la plantilla por defecto de Supabase
+
+Mientras no estén activas las plantillas propias, el correo estándar de Supabase apunta a su servidor: Supabase canjea el enlace allí y redirige a la app con los tokens en un segundo fragmento, por ejemplo `/#/auth/confirm#access_token=…&refresh_token=…&type=recovery`. `/auth/confirm` también acepta ese formato:
+
+- abre la sesión con `supabase.auth.setSession`, quita los tokens de la barra de direcciones con `history.replaceState` y continúa a `/auth/set-password`;
+- si Supabase devuelve un error (`#error=access_denied&error_code=otp_expired&…`), muestra un mensaje claro: el enlace venció o ya se usó y hay que pedir uno nuevo.
+
+En este formato el token ya se gastó en el servidor de Supabase al abrir el enlace, así que un escáner de correo puede invalidarlo antes que la persona. Por eso conviene activar las plantillas propias, que usan `token_hash` y el botón **Continuar**.
+
 ## Flujo y mensajes
 
 | Ruta | Función |
