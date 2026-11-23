@@ -78,6 +78,7 @@ export async function getResultLoadOptions(): Promise<ResultLoadOptions> {
       id: sample.id,
       code: sample.code,
       client_name: sample.client?.business_name ?? 'Cliente sin nombre',
+      client_id: sample.client_id ?? null,
     })),
     laboratories: laboratories.data ?? [],
     tests: tests.data ?? [],

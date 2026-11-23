@@ -123,6 +123,8 @@ export interface ResultLoadOptions {
     id: string
     code: string
     client_name: string
+    /** Cliente de la muestra (lo usa la carga rápida para crear el borrador) */
+    client_id?: string | null
   }[]
   laboratories: {
     id: string

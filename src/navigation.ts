@@ -38,6 +38,11 @@ export const navigationGroups: NavigationGroup[] = [
     label: 'Resultados',
     items: [
       {
+        label: 'Carga rápida',
+        path: '/resultados/rapida',
+        roles: ['ADMIN', 'ANALISTA'],
+      },
+      {
         label: 'Carga de resultados',
         path: '/resultados/carga',
         roles: ['ADMIN', 'ANALISTA', 'JEFE_TECNICA_CALIDAD', 'AUDITOR'],

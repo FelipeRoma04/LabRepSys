@@ -22,6 +22,7 @@ import { SamplesPage } from './pages/SamplesPage'
 import { FieldDataPage } from './pages/FieldDataPage'
 import { ExternalShipmentsPage } from './pages/ExternalShipmentsPage'
 import { ResultsLoadPage } from './pages/ResultsLoadPage'
+import { QuickLoadPage } from './pages/QuickLoadPage'
 import { ResultsPendingPage } from './pages/ResultsPendingPage'
 import { ReconciliationPage } from './pages/ReconciliationPage'
 import { RegulationsPage } from './pages/RegulationsPage'
@@ -81,6 +82,7 @@ function navigationPage(path: string, title: string) {
   if (path === '/muestras/datos-de-campo') return <FieldDataPage />
   if (path === '/laboratorios-externos') return <ExternalShipmentsPage />
   if (path === '/resultados/carga') return <ResultsLoadPage />
+  if (path === '/resultados/rapida') return <QuickLoadPage />
   if (path === '/resultados/pendientes') return <ResultsPendingPage />
   if (path === '/resultados/conciliacion') return <ReconciliationPage />
   if (path === '/normativa') return <RegulationsPage />
