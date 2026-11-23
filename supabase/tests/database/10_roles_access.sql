@@ -1,4 +1,4 @@
--- K02: Acceso a catÃ¡logos, privilegios por rol y protecciÃ³n de auditorÃ­a.
+-- K02: Acceso a catálogos, privilegios por rol y protección de auditoría.
 \ir 000_helpers.psql
 begin;
 select plan(22);
@@ -21,11 +21,11 @@ set local role authenticated;
 
 select tests.set_role_context('ANALISTA', :'inactive_id');
 select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 0,
-  'Un usuario inactivo no puede leer catÃ¡logos');
+  'Un usuario inactivo no puede leer catálogos');
 
 select tests.set_role_context('NO_ROLE', :'no_role_id');
 select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 0,
-  'Un usuario activo sin rol no puede leer catÃ¡logos');
+  'Un usuario activo sin rol no puede leer catálogos');
 
 select tests.set_role_context('ADMIN', :'admin_id');
 select is((select count(*)::int from public.matrices where code = 'K02-ACCESS'), 1, 'ADMIN puede leer matrices');

@@ -42,7 +42,7 @@ select throws_ok(
     insert into public.clients (nit, business_name)
     values (' 900123456 ', 'Duplicado NIT')
   $$,
-  '23505',
+  '23505', null,
   'Un NIT existente no puede repetirse aunque tenga espacios exteriores'
 );
 
@@ -60,7 +60,7 @@ select throws_ok(
       )
     )
   $$,
-  '23503',
+  '23503', null,
   'Una cotización rechaza el contacto perteneciente a otro cliente'
 );
 

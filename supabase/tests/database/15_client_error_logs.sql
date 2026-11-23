@@ -1,7 +1,7 @@
 -- K04: append-only client error storage, role isolation, and audit correlation.
 begin;
 
-\ir helpers.sql
+\ir 000_helpers.psql
 
 select plan(10);
 select tests.create_test_user('ADMIN_TECNICO') as technical_admin_id \gset
@@ -37,9 +37,9 @@ select tests.emit_k04_audit() as audit_id \gset
 
 select is((select count(*)::int from public.client_error_logs), 0,
   'ANALISTA no puede leer registros propios ni de otros');
-select throws_ok('update public.client_error_logs set message = ''changed''', '42501',
+select throws_ok('update public.client_error_logs set message = ''changed''', '42501', null,
   'ANALISTA no puede actualizar registros de error');
-select throws_ok('delete from public.client_error_logs', '42501',
+select throws_ok('delete from public.client_error_logs', '42501', null,
   'ANALISTA no puede eliminar registros de error');
 
 select set_config('request.jwt.claims', json_build_object('sub', :'technical_admin_id', 'role', 'authenticated')::text, true);
@@ -55,10 +55,10 @@ select is((select count(*)::int from public.client_error_logs where message like
 select set_config('request.jwt.claims', json_build_object('sub', :'inactive_id', 'role', 'authenticated')::text, true);
 select throws_ok(
   $$insert into public.client_error_logs (route, message) values ('/test', 'error')$$,
-  '42501',
+  '42501', null,
   'Usuario inactivo no puede registrar errores'
 );
-select throws_ok('select public.diagnostic_failed_import_count()', '42501',
+select throws_ok('select public.diagnostic_failed_import_count()', '42501', null,
   'Usuario inactivo no puede consultar conteos de diagnóstico');
 
 select is(tests.get_k04_audit_correlation(:'audit_id'::uuid)::text,

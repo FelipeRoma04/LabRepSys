@@ -3,6 +3,7 @@
 begin;
 
 select plan(9);
+select tests.authenticate_fixture_admin() as fixture_admin_id \gset
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.reconciliation_issues'::regclass)
@@ -116,7 +117,7 @@ select throws_ok(
     ' ',
     null
   )$$,
-  '22023',
+  '22023', null,
   'No se registra una decisión sin motivo'
 );
 
@@ -164,7 +165,7 @@ select throws_ok(
     'Intento de liberar AOX incompleto',
     null
   )$$,
-  '22023',
+  '22023', null,
   'AOX no se libera mientras la ficha técnica esté incompleta'
 );
 
@@ -194,7 +195,7 @@ select throws_ok(
     'Intento desde soporte técnico',
     null
   )$$,
-  '42501',
+  '42501', null,
   'ADMIN_TECNICO no puede solicitar ni resolver decisiones'
 );
 

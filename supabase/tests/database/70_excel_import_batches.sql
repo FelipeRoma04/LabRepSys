@@ -59,6 +59,8 @@ select is(
   'El mismo hash completo no se registra por segunda vez'
 );
 
+-- La tabla está revocada para authenticated (solo se usa vía funciones); se verifica como postgres.
+reset role;
 select is(
   (select imported_count from public.excel_import_batches where target = 'tests' and file_hash = repeat('a', 64)),
   3,
@@ -85,7 +87,7 @@ set local role authenticated;
 
 select throws_ok(
   $$select public.has_excel_import('tests', repeat('b', 64))$$,
-  '42501',
+  '42501', null,
   'RECEPCION no puede consultar importaciones del catálogo de ensayos'
 );
 

@@ -62,3 +62,20 @@ end;
 $$;
 
 revoke execute on function tests.create_test_user(text, boolean) from public, anon, authenticated;
+
+-- Autentica un ADMIN activo para preparar fixtures. Los triggers de auditoría
+-- (log_audit) exigen un usuario activo incluso cuando se inserta como postgres.
+create or replace function tests.authenticate_fixture_admin()
+returns uuid
+language plpgsql
+set search_path = pg_catalog, public, auth
+as $$
+declare
+  v_admin uuid := tests.create_test_user('ADMIN');
+begin
+  perform tests.set_role_context('ADMIN', v_admin);
+  return v_admin;
+end;
+$$;
+
+revoke execute on function tests.authenticate_fixture_admin() from public, anon, authenticated;

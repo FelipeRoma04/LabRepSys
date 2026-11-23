@@ -1,7 +1,7 @@
 -- K03: template approval denial and audit, immutable approved config, new version.
 begin;
 
-\ir helpers.sql
+\ir 000_helpers.psql
 
 select plan(8);
 select tests.create_test_user('ADMIN') as admin_id \gset
@@ -19,10 +19,13 @@ select is(
   'false',
   'ANALISTA cannot approve a template'
 );
+-- audit_logs no es legible para ANALISTA; se verifica como postgres.
+reset role;
 select ok(
   exists (select 1 from public.audit_logs where action = 'APPROVE_TEMPLATE_DENIED' and entity_id = :'template_id'::uuid),
   'denied approval is audited'
 );
+set local role authenticated;
 
 select set_config('request.jwt.claims', json_build_object('sub', :'jtc_id', 'role', 'authenticated')::text, true);
 select is(public.approve_template(:'template_id'::uuid)->>'ok', 'true', 'JTC approves the draft');
@@ -31,6 +34,9 @@ select is(
   'APPROVED',
   'approved template records its state'
 );
+-- Solo ADMIN tiene política UPDATE; con otro rol RLS filtraría la fila sin error y
+-- no se llegaría al trigger de inmutabilidad.
+select set_config('request.jwt.claims', json_build_object('sub', :'admin_id', 'role', 'authenticated')::text, true);
 select throws_ok(
   format('update public.report_templates set configuration = %L::jsonb where id = %L::uuid', '{"schemaVersion":1,"changed":true}', :'template_id'),
   '42501',

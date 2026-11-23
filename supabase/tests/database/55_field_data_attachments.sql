@@ -147,7 +147,7 @@ select throws_ok(
     select '55000000-0000-0000-0000-000000000002', id, 'NOT_REPORTED', 1
       from public.field_parameters where code = 'ph'$$,
   '23514', null,
-  'Un estado distinto de VALUE rechaza un valor numÃ©rico');
+  'Un estado distinto de VALUE rechaza un valor numérico');
 update public.samples
    set status = 'RECEIVED'
  where id = '55000000-0000-0000-0000-000000000002';
@@ -186,6 +186,8 @@ select ok(
   'La edición posterior con motivo queda aceptada por RPC'
 );
 
+-- audit_logs solo es legible para roles de supervisión; se verifica como postgres.
+reset role;
 select ok(
   exists (
     select 1 from public.audit_logs

@@ -3,6 +3,7 @@
 begin;
 
 select plan(10);
+select tests.authenticate_fixture_admin() as fixture_admin_id \gset
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.samples'::regclass)
@@ -32,7 +33,7 @@ select throws_ok(
     'reception', jsonb_build_object('has_deviation', false),
     'request_review', jsonb_build_object('capacity_verified', true, 'methods_verified', true)
   ))$$,
-  '22023',
+  '22023', null,
   'El trigger de base de datos rechaza AG00106'
 );
 
@@ -56,7 +57,7 @@ select throws_ok(
     'reception', jsonb_build_object('has_deviation', false),
     'request_review', jsonb_build_object('capacity_verified', true, 'methods_verified', true)
   ))$$,
-  '23505',
+  '23505', null,
   'El código de muestra no se puede duplicar'
 );
 
@@ -75,7 +76,7 @@ select throws_ok(
       null
     )
   $$,
-  '22023',
+  '22023', null,
   'La edición posterior sin motivo es rechazada'
 );
 
@@ -104,7 +105,7 @@ select throws_ok(
       null
     )
   $$,
-  '22023',
+  '22023', null,
   'Una desviación requiere dejar constancia de consulta al cliente'
 );
 
@@ -136,7 +137,7 @@ select throws_ok(
       null
     )
   $$,
-  '22023',
+  '22023', null,
   'Un ensayo subcontratado requiere laboratorio asignado'
 );
 
@@ -162,7 +163,7 @@ select throws_ok(
       null
     )
   $$,
-  '22023',
+  '22023', null,
   'La cotización sugerida exige confirmación explícita'
 );
 
